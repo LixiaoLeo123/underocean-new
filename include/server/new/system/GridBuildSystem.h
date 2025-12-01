@@ -21,7 +21,7 @@ public:
     void update(float dt) override;;
 };
 inline void GridBuildSystem::update(float dt) {
-    GridResource& grid = coord_.ctx<GridResource>();
+    auto& grid = coord_.ctx<GridResource>();
     const auto& entities = coord_.getEntitiesWith(signature_);
     for (Entity e : entities) {
         Transform pos = coord_.getComponent<Transform>(e);

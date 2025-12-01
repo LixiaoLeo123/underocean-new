@@ -11,18 +11,18 @@
 
 class AccelerationSystem : public ISystem {
 private:
-    Signature signature;
+    Signature signature_ {};
     Coordinator& coord_;
 public:
-    AccelerationSystem(Coordinator& coordinator)
+    explicit AccelerationSystem(Coordinator& coordinator)
         :coord_(coordinator){
-        signature.set(Coordinator::getComponentTypeID<Velocity>(), true);
-        signature.set(Coordinator::getComponentTypeID<Acceleration>(), true);
-        coord_.registerSystem(signature);
+        signature_.set(Coordinator::getComponentTypeID<Velocity>(), true);
+        signature_.set(Coordinator::getComponentTypeID<Acceleration>(), true);
+        coord_.registerSystem(signature_);
     }
 
     void update(float dt) override {
-        const auto& entities = coord_.getEntitiesWith(signature);
+        const auto& entities = coord_.getEntitiesWith(signature_);
         for (Entity e : entities) {
             auto& vel = coord_.getComponent<Velocity>(e);
             auto& acc = coord_.getComponent<Acceleration>(e);

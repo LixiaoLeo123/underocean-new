@@ -12,14 +12,13 @@
 #include "common/Types.h"
 #include "component/ComponentArray.h"
 #include "component/IComponentArray.h"
-
 class Coordinator {
 private:
     std::array<Signature, MAX_ENTITIES> signatures{};
     std::queue<Entity> availableIds;  //from destroyed entities
     Entity nextId = 0;  //fully new id
     std::vector<std::unique_ptr<IComponentArray>> componentArrays;
-    std::unordered_map<ResourceType, std::unique_ptr<void, void(*)(void*)>> resources;   //just data, no logic
+    std::unordered_map<ResourceType, std::unique_ptr<void, void(*)(void*)>> resources;   //just global data, no logic
     std::unordered_map<Signature, std::vector<Entity>> entitiesBySignature;  //system
     static ComponentType getUniqueComponentTypeID() {
         static ComponentType lastID = 0;
@@ -46,8 +45,8 @@ private:
         }
     }
     template<typename T>
-    static void deleteResource(void* ptr) {  //for ~resource
-        delete static_cast<T*>(ptr);
+    static void deleteResource(void *ptr) {
+        delete static_cast<T *>(ptr);
     }
 public:
     Coordinator(const Coordinator&) = delete;
@@ -73,7 +72,11 @@ public:
     void emplaceContext(Args&&... args) {
         ResourceType id = getResourceTypeID<T>();
         T* rawPtr = new T(std::forward<Args>(args)...);
-        resources[id] = std::unique_ptr<void, void(*)(void*)>(rawPtr, deleteResource<T>);
+        void (*deleter)(void*) = &deleteResource<T>;
+        resources.emplace(id, std::unique_ptr<void, void(*)(void*)>(
+            static_cast<void*>(rawPtr),
+            deleter
+        ));
     }
     template<typename T>
     T& ctx() {    //get resource
@@ -125,8 +128,10 @@ public:
     T& getComponent(Entity entity) {  //unsafe
         return getComponentArray<T>()->GetData(entity);
     }
-    void registerSystem(Signature signature) {   //call by system only
-        entitiesBySignature[signature] = {};
+    void registerSystem(Signature signature) {   //call by system only, copy va
+        if (entitiesBySignature.find(signature) == entitiesBySignature.end()) {
+            entitiesBySignature[signature] = {};   //only init when not exist
+        }
     }
     const std::vector<Entity>& getEntitiesWith(Signature signature) {
         return entitiesBySignature[signature];

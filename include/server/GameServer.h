@@ -10,7 +10,6 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
-#include <SFML/System/Clock.hpp>
 
 #include "common/network/ServerNetworkDriver.h"
 #include "common/Types.h"

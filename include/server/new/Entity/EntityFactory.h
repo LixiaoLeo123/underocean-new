@@ -4,10 +4,6 @@
 
 #ifndef UNDEROCEAN_ENTITYFACTORY_H
 #define UNDEROCEAN_ENTITYFACTORY_H
-#include <cstdint>
-enum class EntityType : std::uint8_t {   //only appearance
-
-};
 class EntityFactory {
 public:
 

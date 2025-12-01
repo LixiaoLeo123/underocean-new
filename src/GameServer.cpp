@@ -6,6 +6,7 @@
 
 #include "server/core/GameData.h"
 #include "server/new/levels/Level0.h"
+#include "server/new/levels/Level1.h"
 
 GameServer::GameServer(){
     if (!networkDriver_.listen(GameData::SERVER_PORT)) {

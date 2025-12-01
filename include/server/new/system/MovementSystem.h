@@ -11,17 +11,17 @@
 
 class MovementSystem : public ISystem {
 private:
-    Signature signature;
+    Signature signature_ {};
     Coordinator& coord;
 public:
     explicit MovementSystem(Coordinator& coordinator)
         :coord(coordinator){
-        signature.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
-        signature.set(static_cast<size_t>(Coordinator::getComponentTypeID<Velocity>()), true);
-        coord.registerSystem(signature);
+        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
+        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Velocity>()), true);
+        coord.registerSystem(signature_);
     }
     void update(float dt) override {
-        const auto& entities = coord.getEntitiesWith(signature);
+        const auto& entities = coord.getEntitiesWith(signature_);
         for (Entity e : entities) {
             auto& pos = coord.getComponent<Transform>(e);
             auto& vel = coord.getComponent<Velocity>(e);
