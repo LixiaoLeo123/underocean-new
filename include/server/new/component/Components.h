@@ -5,22 +5,24 @@
 #ifndef UNDEROCEAN_COMPONENTS_H
 #define UNDEROCEAN_COMPONENTS_H
 #include "common/Types.h"
-#include "server/new/system/BoidsSystem.h"
 struct UVector;
 struct Transform {
     float x = 0, y = 0;
     Transform(UVector vec);
-    void operator+=(const UVector vec);
+    explicit Transform(float x = 0.f, float y = 0.f) : x(x), y(y) {}
+    void operator+=(UVector vec);
 };
 struct Velocity {
     float vx = 0.f, vy = 0.f;
     Velocity(UVector vec);
-    void operator+=(const UVector vec);
+    explicit Velocity(float vx = 0.f, float vy = 0.f) : vx(vx), vy(vy) {}
+    void operator+=(UVector vec);
 };
 struct Acceleration {
     float ax = 0.f, ay = 0.f;
     Acceleration(UVector vec);
-    void operator+=(const UVector vec);
+    explicit Acceleration(float ax = 0.f, float ay = 0.f) : ax(ax), ay(ay) {}
+    void operator+=(UVector vec);
 };
 struct MaxVelocity {
     float maxVelocity = 10.f;   //current, the constant one see types.h
@@ -32,6 +34,9 @@ struct EntityType {   //"imagined" bio type, for boids and texture
     EntityTypeID entityID = EntityTypeID::NONE;
 };
 struct Boids {};   //mark for boids system, require Entity Type
+struct NetworkPeer {
+    ENetPeer* peer = nullptr;
+};
 struct UVector {   //not a component, just for vector calculation, U for unified
     float x;
     float y;

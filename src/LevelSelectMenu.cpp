@@ -1,6 +1,7 @@
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 #include "client/common/ResourceManager.h"
-
+#include "server/core/GameData.h"
+#define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
 LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, std::string ip, int port)
     : title_(title), LazyPanelScene(WIDTH, HEIGHT),
       levelButtons_{
@@ -135,7 +136,13 @@ void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum suppose
         statusIndicator_.setStateProcessing();
     }
     else {
-
+        SceneSwitchRequest request = {
+            SceneSwitchRequest::Push,
+            std::make_unique<LevelSelectMenu>(title_, GameData::SERVER_IP, GameData::SERVER_PORT),
+            0,
+            0 //means no title anim
+        };
+        onRequestSwitch_(request);
     }
 }
 

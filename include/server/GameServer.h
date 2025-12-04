@@ -21,9 +21,6 @@ class GameServer {
 private:
     static constexpr int levelNum = 1;   //max level num is 6
     std::array<std::unique_ptr<ILevel>, levelNum> levels_;  //level0 for lobby!
-    ServerNetworkDriver networkDriver_;
-    std::unordered_map<ENetPeer*, PlayerData> playerList_;
-    std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
     static bool isLevelLegal(int level){ return (level >= 0 && level < levelNum); }
     void handleConnectionPacket();
     void tryRemovePlayer(ENetPeer* peer);
@@ -37,6 +34,9 @@ public:
     explicit GameServer();
     GameServer(const GameServer&) = delete;
     GameServer& operator=(const GameServer&) = delete;
+    ServerNetworkDriver networkDriver_;
+    std::unordered_map<ENetPeer*, PlayerData> playerList_;
+    std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
     void update(float dt) {
         networkDriver_.pollPackets();
         handleConnectionPacket();   //CAUTION: may cause peer existence change!
@@ -87,20 +87,6 @@ inline void GameServer::tryRemovePlayer(ENetPeer* peer) {
         playerList_.erase(it);
     }
     buffer_.erase(peer);
-}
-inline void GameServer::handleLoginPacket() {
-    while (networkDriver_.hasPacket(PKT_LOGIN)) {
-        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(4));
-        ENetPeer* peer = namedPacket->peer;
-        auto it = playerList_.find(peer);
-        if (it == playerList_.end()) continue;  //already leave
-        Packet& packet = namedPacket->packet;
-        if (packet.size() != 16) continue;
-        std::copy_n(packet.begin(), 16, it->second.playerId);  //playerId
-        //and...
-        it->second.hasLogin = true;   //finish
-        broadcast("&e" + std::string(it->second.playerId).append(" joined the game"));
-    }
 }
 inline void GameServer::handleLevelChangePacket() {
     while (networkDriver_.hasPacket(PKT_LEVEL_CHANGE)) {

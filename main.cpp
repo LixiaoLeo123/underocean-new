@@ -12,7 +12,7 @@ int main() {
     GameServer server;
     server.run();
 #else
-    //startNetServer();
+    startNetServer();
     GameClient client;
     client.run();
 #endif

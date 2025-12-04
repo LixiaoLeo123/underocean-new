@@ -41,7 +41,7 @@ private:
         return static_cast<ComponentArray<T>*>(componentArrays[type].get());
     }
     template<typename T>
-    void registerComponent() {
+    void registerComponent() {   //single component can be registered multiple times
         ComponentType type = getComponentTypeID<T>();
         if (type >= componentArrays.size()) {
             componentArrays.resize(type + 1);
@@ -117,7 +117,6 @@ public:
             std::vector<Entity>& list = pair.second;
             list.erase(std::remove(list.begin(), list.end(), entity), list.end());
         }
-
         availableIds.push(entity);
     }
     template<typename T>
@@ -164,6 +163,9 @@ public:
     }
     [[nodiscard]] bool hasSignature(Entity entity, Signature targetSignature) const {
         return (signatures[entity] & targetSignature) == targetSignature;
+    }
+    [[nodiscard]] int getEntityCount() {
+        return static_cast<int>(entitiesBySignature[Signature{}].size());
     }
 };
 #endif //UNDEROCEAN_COORDINATOR_H

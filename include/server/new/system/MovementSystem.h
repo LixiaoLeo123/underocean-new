@@ -18,7 +18,7 @@ public:
         :coord_(coordinator){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Velocity>()), true);
-        coord_.registerSystem(signature_);
+        //coord_.registerSystem(signature_);
     }
     void update(float dt) override {
         auto& grid = coord_.ctx<GridResource>();
@@ -26,7 +26,8 @@ public:
             if (!cell.isAOI) continue;
             for (Entity entity : cell.entities) {
                 if (!coord_.hasSignature(entity, signature_)) continue;
-                coord_.getComponent<Transform>(entity) += coord_.getComponent<Velocity>(entity) * dt;
+                coord_.getComponent<Transform>(entity) +=
+                    static_cast<UVector>(coord_.getComponent<Velocity>(entity)) * dt;
             }
         }
     }

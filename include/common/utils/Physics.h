@@ -10,6 +10,7 @@
 
 class Physics {
 public :
+    static constexpr float PI = 3.1415926f;
     static float distance(UVector a, UVector b);
     static float distance2(UVector a, UVector b);
 };

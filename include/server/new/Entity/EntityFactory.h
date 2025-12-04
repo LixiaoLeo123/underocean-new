@@ -5,16 +5,24 @@
 #ifndef UNDEROCEAN_ENTITYFACTORY_H
 #define UNDEROCEAN_ENTITYFACTORY_H
 #include <functional>
+#include <random>
 #include <SFML/System/Vector2.hpp>
 
 #include "server/new/Coordinator.h"
 class EntityFactory {
 private:
+    struct WeightedEntry {
+        EntityTypeID type;
+        double weight;
+    };
+    std::mt19937 gen_{ std::random_device{}() };  //for spawnRandom
     Coordinator& coord_;
     sf::Vector2f spawnAreaFrom_ {};
     sf::Vector2f spawnAreaTo_ {};   //spawn area
-    std::vector<std::function<Entity()>> spawnFunctions_;  //spawn and get Entity value
-    void registerSpawner(EntityTypeID id, std::function<Entity()> func) {        //spawnFunctions_.push_back
+    std::vector<std::function<Entity(bool isPlayer)>> spawnFunctions_;  //spawn and get Entity value
+    std::vector<WeightedEntry> weightedEntries_ {};
+    bool distDirty_{ false };  //see spawnRandom
+    void registerSpawner(EntityTypeID id, std::function<Entity(bool isPlayer)> func) {        //spawnFunctions_.push_back
         auto index = static_cast<size_t>(id);
         if (index >= spawnFunctions_.size()) {
             spawnFunctions_.resize(index + 1);
@@ -24,18 +32,35 @@ private:
 public:
     explicit EntityFactory(Coordinator& coordinator)
         :coord_(coordinator) {
-        spawnFunctions_.reserve(static_cast<size_t>(EntityTypeID::NUM));
+        spawnFunctions_.reserve(static_cast<size_t>(EntityTypeID::COUNT));
     };
     void initialize();   //add spawn functions
     void setSpawnArea(sf::Vector2f from, sf::Vector2f to) {
         spawnAreaFrom_ = from;
         spawnAreaTo_ = to;
     }
-    Entity spawnWithID(EntityTypeID id) {
+    Entity spawnWithID(EntityTypeID id, bool isPlayer = false) {
         auto index = static_cast<size_t>(id);
         assert(index < spawnFunctions_.size() && "EntityTypeID not registered!");
         assert(spawnFunctions_[index] && "Spawner function is null!");
-        return spawnFunctions_[index]();
+        return spawnFunctions_[index](isPlayer);
+    }
+    void addWeightedEntry(EntityTypeID id, double weight) {
+        weightedEntries_.push_back({id, weight});
+    }
+    Entity spawnRandom(bool isPlayer = false) {   //with weight in weightedEntries
+        static std::discrete_distribution<size_t> dist;
+        if (distDirty_) {   //after weightedEntries change
+            std::vector<double> weights;
+            weights.reserve(weightedEntries_.size());
+            for (auto& entry : weightedEntries_) {
+                weights.push_back(entry.weight);
+            }
+            dist = std::discrete_distribution<size_t>(weights.begin(), weights.end());
+            distDirty_ = false;
+        }
+        size_t index = dist(gen_);
+        return spawnFunctions_[index](isPlayer);
     }
 };
 #endif //UNDEROCEAN_ENTITYFACTORY_H

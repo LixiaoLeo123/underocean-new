@@ -9,8 +9,8 @@
 #include "ISystem.h"
 #include "common/utils/Physics.h"
 #include "server/new/Coordinator.h"
-#include "server/new/component/Components.h"
 #include "server/new/resources/GridResource.h"
+#include "server/new/component/Components.h"
 //entities that boids will handle
 #define BOIDS_ENTITY_TYPES \
 X(SMALL_YELLOW)

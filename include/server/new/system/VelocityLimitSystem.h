@@ -19,7 +19,7 @@ public:
         :coord(coordinator){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<MaxVelocity>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Velocity>()), true);
-        coord.registerSystem(signature_);
+        //coord.registerSystem(signature_);
     }
     void update(float dt) override {
         auto &grid = coord.ctx<GridResource>();

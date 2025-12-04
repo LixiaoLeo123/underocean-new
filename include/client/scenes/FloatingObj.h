@@ -7,7 +7,9 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Vector2.hpp>
-#include "common/utils/Physics_deprecate.h"
+
+#include "common/utils/Physics.h"
+
 namespace sf {
     class Texture;
 }

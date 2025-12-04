@@ -7,7 +7,6 @@
 #include <cassert>
 #include <random>
 #include <SFML/System/Vector2.hpp>
-
 class Random {
 public:
     static std::mt19937& generator();
@@ -24,7 +23,7 @@ inline std::mt19937& Random::generator() {
     return gen;
 }
 inline float Random::randFloat(float min, float max) {
-    std::uniform_real_distribution<float> dist(min, std::nextafter(max, std::numeric_limits<float>::max()));
+    std::uniform_real_distribution<float> dist(min, max);
     return dist(generator());
 }
 inline int Random::randInt(int min, int max) {

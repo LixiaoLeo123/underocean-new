@@ -4,7 +4,6 @@
 
 #ifndef UNDEROCEAN_TYPES_H
 #define UNDEROCEAN_TYPES_H
-#include <cstdint>
 #include <bitset>
 #include "net(depricate)/enet.h"
 #include "net(depricate)/PacketChannel.h"
@@ -20,11 +19,19 @@ X(UGLY_FISH) \
 X(SMALL_SHARK)
 
 using Entity = std::uint16_t;
-const Entity MAX_ENTITIES = 5000;
+constexpr Entity MAX_ENTITIES = 5000;
 using ComponentType = std::uint8_t;
-const ComponentType MAX_COMPONENTS = 32;
+constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
 using Signature = std::bitset<MAX_COMPONENTS>;
+constexpr float ENTITY_MAX_SIZE = 200.f;
+enum class EntityTypeID : std::uint8_t {
+    NONE = 0,
+#define X(name) name,
+    ENTITY_TYPES
+#undef X
+    COUNT
+};
 namespace ServerTypes {
     enum PacketType : std::uint8_t {
         PKT_CONNECT = 0,   //0 byte
@@ -65,6 +72,8 @@ struct PlayerData {  //related to GameServer::handleLoginPacket()!!
     char playerId[16] = "";
     std::uint16_t netX = 0;  //level divided into grid, 0 - 65535
     std::uint16_t netY = 0;
+    EntityTypeID type = EntityTypeID::NONE;
+    std::uint8_t netSize = 0;  //actually ENTITY_MAX_SIZE / netSize
 };
 // struct LevelChangeRequest {
 //     ENetPeer* peer;
@@ -86,13 +95,6 @@ inline std::string getLocalString(MsgId id) {  //same
         default:                    return "";
     }
 }
-enum class EntityTypeID : std::uint8_t {
-    NONE = 0,
-#define X(name) name,
-    ENTITY_TYPES
-#undef X
-    COUNT
-};
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {

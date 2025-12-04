@@ -20,7 +20,6 @@ add_executable(Underocean
         src/GameData.cpp
         src/INodeScene.cpp
         src/LazyLayout.cpp
-        src/SmallFish.cpp
         src/StartMenu.cpp
         src/InputManager.cpp
         src/RootScene.cpp

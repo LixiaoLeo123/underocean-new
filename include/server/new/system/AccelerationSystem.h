@@ -18,7 +18,7 @@ public:
         :coord_(coordinator){
         signature_.set(Coordinator::getComponentTypeID<Velocity>(), true);
         signature_.set(Coordinator::getComponentTypeID<Acceleration>(), true);
-        coord_.registerSystem(signature_);
+        //coord_.registerSystem(signature_);
     }
 
     void update(float dt) override {

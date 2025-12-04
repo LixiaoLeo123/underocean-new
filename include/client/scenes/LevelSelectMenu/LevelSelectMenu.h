@@ -5,14 +5,11 @@
 #ifndef UNDEROCEAN_LEVELSELECTMENU_H
 #define UNDEROCEAN_LEVELSELECTMENU_H
 #include "StatusIndicator.h"
-#include "client/common/ResourceManager.h"
 #include "client/scenes/FloatingObj.h"
 #include "client/scenes/LazyPanelScene.h"
 #include "client/ui/widgets/ImageButton.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
 #include "common/network/ClientNetworkDriver.h"
-#include "server/core/GameData.h"
-#define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
 class LevelSelectMenu : public LazyPanelScene {  //network start, real client
 public:
     LevelSelectMenu(const std::shared_ptr<SmoothTextLabel>& title, std::string ip, int port);

@@ -9,23 +9,17 @@
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
 
-class MovementSystem : public ISystem {
+class BoundaryCullinSystem : public ISystem {
 private:
-    Signature signature_ {};
-    Coordinator& coord;
+    Coordinator& coord_;
 public:
-    explicit MovementSystem(Coordinator& coordinator)
-        :coord(coordinator){
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
-        coord.registerSystem(signature_);   //only transform
+    explicit BoundaryCullinSystem(Coordinator& coordinator)
+        :coord_(coordinator){
     }
     void update(float dt) override {
-        const auto& entities = coord.getEntitiesWith(signature_);
-        for (Entity e : entities) {
-            auto& pos = coord.getComponent<Transform>(e);
-            auto& vel = coord.getComponent<Velocity>(e);
-            pos.x += vel.vx * dt;
-            pos.y += vel.vy * dt;
+        auto& grid = coord_.ctx<GridResource>();
+        for (Entity e : grid.outOfBoundEntities){
+            coord_.destroyEntity(e);
         }
     }
 };

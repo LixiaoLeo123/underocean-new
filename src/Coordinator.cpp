@@ -4,4 +4,10 @@ Coordinator::Coordinator(){
     registerComponent<Transform>();
     registerComponent<Velocity>();
     registerComponent<Acceleration>();
+    registerComponent<MaxVelocity>();
+    registerComponent<MaxAcceleration>();
+    registerComponent<EntityType>();
+    registerComponent<Boids>();
+    registerComponent<NetworkPeer>();
+    registerSystem(Signature());  //empty to get to
 }
