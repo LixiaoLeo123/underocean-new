@@ -22,15 +22,18 @@ public:
         coord.registerSystem(signature_);
     }
     void update(float dt) override {
-        const auto& entities = coord.getEntitiesWith(signature_);
-        for (Entity e : entities) {
-            float maxVelocity = coord.getComponent<MaxVelocity>(e).maxVelocity;
-            auto& vel = coord.getComponent<Velocity>(e);
-            float speed2 = vel.vx * vel.vx + vel.vy * vel.vy;
-            if (speed2 > maxVelocity * maxVelocity && speed2 > 0.0f) {
-                float ratio = maxVelocity / std::sqrt(speed2);
-                vel.vx *= ratio;
-                vel.vy *= ratio;
+        auto &grid = coord.ctx<GridResource>();
+        for (auto &cell: grid.cells_) {
+            if (!cell.isAOI) continue;
+            for (Entity entity: cell.entities) {
+                float maxVelocity = coord.getComponent<MaxVelocity>(entity).maxVelocity;
+                auto &vel = coord.getComponent<Velocity>(entity);
+                float speed2 = vel.vx * vel.vx + vel.vy * vel.vy;
+                if (speed2 > maxVelocity * maxVelocity && speed2 > 0.0f) {
+                    float ratio = maxVelocity / std::sqrt(speed2);
+                    vel.vx *= ratio;
+                    vel.vy *= ratio;
+                }
             }
         }
     }

@@ -12,21 +12,22 @@
 class MovementSystem : public ISystem {
 private:
     Signature signature_ {};
-    Coordinator& coord;
+    Coordinator& coord_;
 public:
     explicit MovementSystem(Coordinator& coordinator)
-        :coord(coordinator){
+        :coord_(coordinator){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Velocity>()), true);
-        coord.registerSystem(signature_);
+        coord_.registerSystem(signature_);
     }
     void update(float dt) override {
-        const auto& entities = coord.getEntitiesWith(signature_);
-        for (Entity e : entities) {
-            auto& pos = coord.getComponent<Transform>(e);
-            auto& vel = coord.getComponent<Velocity>(e);
-            pos.x += vel.vx * dt;
-            pos.y += vel.vy * dt;
+        auto& grid = coord_.ctx<GridResource>();
+        for (auto& cell : grid.cells_) {
+            if (!cell.isAOI) continue;
+            for (Entity entity : cell.entities) {
+                if (!coord_.hasSignature(entity, signature_)) continue;
+                coord_.getComponent<Transform>(entity) += coord_.getComponent<Velocity>(entity) * dt;
+            }
         }
     }
 };

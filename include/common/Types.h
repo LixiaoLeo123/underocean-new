@@ -8,6 +8,16 @@
 #include <bitset>
 #include "net(depricate)/enet.h"
 #include "net(depricate)/PacketChannel.h"
+//x-macro
+#define ENTITY_TYPES \
+X(SMALL_YELLOW) \
+X(ROUND_GREEN) \
+X(BALL_ORANGE) \
+X(FLY_FISH) \
+X(BLUE_LONG) \
+X(RED_LIGHT) \
+X(UGLY_FISH) \
+X(SMALL_SHARK)
 
 using Entity = std::uint16_t;
 const Entity MAX_ENTITIES = 5000;
@@ -76,4 +86,24 @@ inline std::string getLocalString(MsgId id) {  //same
         default:                    return "";
     }
 }
+enum class EntityTypeID : std::uint8_t {
+    NONE = 0,
+#define X(name) name,
+    ENTITY_TYPES
+#undef X
+    COUNT
+};
+template<EntityTypeID ID>
+struct ParamTable;
+template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
+    static constexpr float MAX_VELOCITY = 10.f;
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 100.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 20.f;
+    static constexpr float SEPARATION_WEIGHT = 1000.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+};
 #endif //UNDEROCEAN_TYPES_H

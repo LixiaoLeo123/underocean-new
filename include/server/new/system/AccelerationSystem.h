@@ -22,12 +22,14 @@ public:
     }
 
     void update(float dt) override {
-        const auto& entities = coord_.getEntitiesWith(signature_);
-        for (Entity e : entities) {
-            auto& vel = coord_.getComponent<Velocity>(e);
-            auto& acc = coord_.getComponent<Acceleration>(e);
-            vel.vx += acc.ax * dt;
-            vel.vy += acc.ay * dt;
+        auto& grid = coord_.ctx<GridResource>();
+        for (auto& cell : grid.cells_) {
+            if (!cell.isAOI) continue;
+            for (Entity entity : cell.entities) {
+                if (!coord_.hasSignature(entity, signature_)) continue;
+                coord_.getComponent<Velocity>(entity) +=
+                    static_cast<UVector>(coord_.getComponent<Acceleration>(entity)) * dt;
+            }
         }
     }
 };

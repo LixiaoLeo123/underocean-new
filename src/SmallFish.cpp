@@ -5,7 +5,7 @@
 
 #include <array>
 
-#include "common/utils/Physics.h"
+#include "common/utils/Physics_deprecate.h"
 #include "server/core/GameData.h"
 
 const std::array<SmallFish::Params, static_cast<size_t>(SmallFishType::COUNT)>& SmallFish::getParamsTable() {

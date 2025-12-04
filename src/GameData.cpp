@@ -9,7 +9,7 @@
 #include <iosfwd>
 #include <iostream>
 
-#include "common/utils/Physics.h"
+#include "common/utils/Physics_deprecate.h"
 
 template<typename Stream, typename Op>
 void GameData::processSettings(Stream& stream, Op op) {

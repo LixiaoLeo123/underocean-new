@@ -11,7 +11,7 @@
 #include "client/common/INodeScene.h"
 #include "client/ui/widgets/Panel.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
-#include "common/utils/Physics.h"
+#include "common/utils/Physics_deprecate.h"
 #include "../FloatingObj.h"
 
 namespace sf {

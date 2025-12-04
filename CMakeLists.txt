@@ -31,6 +31,7 @@ add_executable(Underocean
         src/Coordinator.cpp
         src/GameServer.cpp
         src/BoidsSystem.cpp
+        src/EntityFactory.cpp
 )
 
 # 添加头文件目录

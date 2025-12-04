@@ -12,6 +12,12 @@
 #include "common/Types.h"
 #include "component/ComponentArray.h"
 #include "component/IComponentArray.h"
+/*  if a system do use GridResource to tick in a specific range,
+ *  DO NOT register its signature here,
+ *  instead take entity from GridResource and select in update()
+ *  else if this system is global and do not use GridResource,
+ *  register to improve performance
+ */
 class Coordinator {
 private:
     std::array<Signature, MAX_ENTITIES> signatures{};

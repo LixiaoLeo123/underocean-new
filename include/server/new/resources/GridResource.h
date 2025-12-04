@@ -9,15 +9,17 @@
 struct GridResource {
     struct Cell {
         std::vector<Entity> entities;
+        bool isAOI{false};
     };
-    int cellWidth_, cellHeight_;
+    std::vector<Entity> outOfBoundEntities;   //will be cleared by system
+    float cellWidth_, cellHeight_;
     int cols_, rows_;   //do not include "extra area"
     std::vector<Cell> cells_;
     void init(int w, int h, int cols, int rows) {
         cols_ = cols;
         rows_ = rows;
-        cellWidth_ = w / cols_;
-        cellHeight_ = h / rows_;
+        cellWidth_ = static_cast<float>(w) / static_cast<float>(cols_);
+        cellHeight_ = static_cast<float>(h) / static_cast<float>(rows_);
         cells_.resize((cols + 2) * (rows + 2));
         for(auto& c : cells_) c.entities.reserve(CELL_INIT_RESERVATION);
     }
@@ -31,6 +33,16 @@ struct GridResource {
             int idx = (r + 1) * (cols_ + 2) + (c + 1);
             cells_[idx].entities.push_back(e);
         }
+        else {
+            outOfBoundEntities.push_back(e);
+        }
+    }
+    [[nodiscard]] bool cellExistAt(int r, int c) const {
+        int index = (r + 1) * (cols_ + 2) + (c + 1);
+        return index >= 0 && index < cells_.size();
+    }
+    [[nodiscard]] Cell& cellAt(int r, int c) {
+        return cells_[(r + 1) * (cols_ + 2) + (c + 1)];
     }
 };
 #endif //UNDEROCEAN_GRIDRESOURCE_H
