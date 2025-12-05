@@ -5,6 +5,7 @@
 #ifndef UNDEROCEAN_LEVELBASE_H
 #define UNDEROCEAN_LEVELBASE_H
 #include "Coordinator.h"
+#include "EventBus.h"
 #include "ILevel.h"
 #include "Entity/EntityFactory.h"
 #include "system/AccelerationLimitSystem.h"
@@ -52,6 +53,7 @@ protected:
     EntityFactory entityFactory_;
     std::vector<std::unique_ptr<ISystem>> systems_ {};
     GameServer& server_;
+    EventBus eventBus_;
     virtual void customInitialize() = 0;
     template<typename T, typename... Args>
     void emplaceSystem(Args&&... args) {   //order matters!

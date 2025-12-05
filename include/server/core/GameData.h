@@ -21,7 +21,8 @@ public:
     inline static int FPS = 60;    //frames per second
     inline static int IPS = 20;   //input read per second(see inputmanager::update())
     inline static int SERVER_TPS = 40;   //ticks per second on server/game
-    inline static int TARGET_AREA = 200 * 100;   //view area
+    inline static int ENTITY_SYNC_RADIUS_X = 2;   //NetworkSyncSystem
+    inline static int ENTITY_SYNC_RADIUS_Y = 1;   //16 : 9
     inline static float CAMERA_ALPHA = 0.02f;
     inline static char playerId[16] = "@";   //@ means not set yet
     inline static int currentLevel = 6;

@@ -22,6 +22,7 @@ private:
     static constexpr int levelNum = 1;   //max level num is 6
     std::array<std::unique_ptr<ILevel>, levelNum> levels_;  //level0 for lobby!
     static bool isLevelLegal(int level){ return (level >= 0 && level < levelNum); }
+    ServerNetworkDriver networkDriver_;
     void handleConnectionPacket();
     void tryRemovePlayer(ENetPeer* peer);
     void handleLoginPacket();
@@ -34,7 +35,6 @@ public:
     explicit GameServer();
     GameServer(const GameServer&) = delete;
     GameServer& operator=(const GameServer&) = delete;
-    ServerNetworkDriver networkDriver_;
     std::unordered_map<ENetPeer*, PlayerData> playerList_;
     std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
     void update(float dt) {
@@ -49,6 +49,7 @@ public:
             level->update(dt);
         }
     }
+    [[nodiscard]] ServerNetworkDriver& getNetworkDriver() { return networkDriver_; }
     [[noreturn]] void run() {
         const float dt = 1.0f / static_cast<float>(GameData::SERVER_TPS); // 服务端固定间隔
         auto lastTime = std::chrono::steady_clock::now();

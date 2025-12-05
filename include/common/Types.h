@@ -19,7 +19,7 @@ X(UGLY_FISH) \
 X(SMALL_SHARK)
 
 using Entity = std::uint16_t;
-constexpr Entity MAX_ENTITIES = 5000;
+constexpr Entity MAX_ENTITIES = 4096;     //512 byte
 using ComponentType = std::uint8_t;
 constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
@@ -32,7 +32,7 @@ enum class EntityTypeID : std::uint8_t {
 #undef X
     COUNT
 };
-namespace ServerTypes {
+namespace ServerTypes {  //packet that server handle
     enum PacketType : std::uint8_t {
         PKT_CONNECT = 0,   //0 byte
         PKT_DISCONNECT = 1,  //same
@@ -44,8 +44,9 @@ namespace ServerTypes {
         COUNT
     };
 }
-namespace ClientTypes {
+namespace ClientTypes {  //packet that client handle
     enum PacketType : std::uint8_t {
+        PKT_ENTITY_STATIC_DATA = 0,  //for entity first enter aoi, reliable
         COUNT
     };
 }

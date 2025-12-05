@@ -14,11 +14,8 @@
 class Level1 final : public LevelBase {
 public:
     explicit Level1(GameServer& server);
-
     void update(float dt) override;
-
     void onPlayerLeave(ENetPeer *player) override;
-
     void onPlayerJoin(ENetPeer *player) override;
     void initialize() override {
         emplaceSystem<NetworkControlSystem>(coordinator_, server_, MAP_SIZE);

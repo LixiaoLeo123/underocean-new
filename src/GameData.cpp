@@ -16,7 +16,8 @@ void GameData::processSettings(Stream& stream, Op op) {
     op(stream, FPS);
     op(stream, IPS);
     op(stream, SERVER_TPS);
-    op(stream, TARGET_AREA);
+    op(stream, ENTITY_SYNC_RADIUS_X);
+    op(stream, ENTITY_SYNC_RADIUS_Y);
     op(stream, CAMERA_ALPHA);
     op(stream, playerId);
     op(stream, currentLevel);
@@ -28,7 +29,8 @@ void GameData::resetSettings() {   //no file change
     FPS = 60;    //frames per second
     IPS = 20;   //input read per second(see inputmanager::update())
     SERVER_TPS = 40;   //ticks per second on server/game
-    TARGET_AREA = 200 * 100;   //view area
+    ENTITY_SYNC_RADIUS_X = 2;   //NetworkSyncSystem
+    ENTITY_SYNC_RADIUS_Y = 1;
     CAMERA_ALPHA = 0.02f;
     playerId[0] = '@';   //@ means not set yet
     currentLevel = 6;
