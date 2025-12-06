@@ -6,7 +6,6 @@
 #define UNDEROCEAN_STATEMANAGER_H
 #include <array>
 #include <chrono>
-#include <iterator>
 #include <memory>
 #include <thread>
 #include <unordered_map>
@@ -14,15 +13,18 @@
 #include "common/network/ServerNetworkDriver.h"
 #include "common/Types.h"
 #include "common/net(depricate)/PacketReader.h"
+#include "common/net(depricate)/PacketWriter.h"
 #include "core/GameData.h"
 #include "new/ILevel.h"
+class PacketWriter;
 using namespace ServerTypes;
 class GameServer {
 private:
-    static constexpr int levelNum = 1;   //max level num is 6
+    static constexpr int levelNum = 2;   //max level num is 6
     std::array<std::unique_ptr<ILevel>, levelNum> levels_;  //level0 for lobby!
     static bool isLevelLegal(int level){ return (level >= 0 && level < levelNum); }
     ServerNetworkDriver networkDriver_;
+    PacketWriter writer;   //unified packet writer to reduce allocation
     void handleConnectionPacket();
     void tryRemovePlayer(ENetPeer* peer);
     void handleLoginPacket();
@@ -37,6 +39,7 @@ public:
     GameServer& operator=(const GameServer&) = delete;
     std::unordered_map<ENetPeer*, PlayerData> playerList_;
     std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
+    [[nodiscard]] PacketWriter& getPacketWriter() { return writer; }
     void update(float dt) {
         networkDriver_.pollPackets();
         handleConnectionPacket();   //CAUTION: may cause peer existence change!
@@ -110,7 +113,7 @@ inline void GameServer::handleMessagePacket() {  //only distribute, broadcast
     while (networkDriver_.hasPacket(PKT_MESSAGE)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_MESSAGE));
         for (auto pair : playerList_) {
-            networkDriver_.send(&namedPacket->packet, pair.first, 1, true);
+            networkDriver_.send(&namedPacket->packet, pair.first, 1, PKT_MESSAGE, true);
         }
     }
 }
@@ -119,7 +122,7 @@ inline void GameServer::broadcast(std::string message) {
     std::vector<std::uint8_t> packet = { PKT_DISCONNECT };
     packet.insert(packet.end(), message.begin(), message.end());
     for (auto pair : playerList_) {
-        networkDriver_.send(&packet, pair.first, 1, true);
+        networkDriver_.send(&packet, pair.first, 1, PKT_MESSAGE, true);
     }
 }
 
@@ -139,7 +142,7 @@ inline void GameServer::handleTransformPacket() {
 
 inline void GameServer::handleActionPacket() {
     while (networkDriver_.hasPacket(PKT_ACTION)) {
-        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(4));
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_ACTION));
         ENetPeer* peer = namedPacket->peer;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //dont exist

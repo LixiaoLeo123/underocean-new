@@ -8,31 +8,37 @@
 #include <vector>
 #include <winsock2.h>
 
-class PacketWriter{
+class PacketWriter{  //NOTE: life cycle must cover the pa
 public:
     PacketWriter() { packet_.reserve(MAX_PACKET_SIZE); }
-    bool canWrite (int bytes) const {
+    [[nodiscard]] bool canWrite (int bytes) const {
         return (packet_.size() + bytes < MAX_PACKET_SIZE);
     }
-    void writeInt32(std::uint32_t host_val) {
+    PacketWriter& writeInt32(std::uint32_t host_val) {
         std::uint32_t net_val = htonl(host_val);
         packet_.insert(packet_.end(), reinterpret_cast<std::uint8_t*>(&net_val), reinterpret_cast<std::uint8_t*>(&net_val) + sizeof(net_val));
+        return *this;
     }
-    void writeInt16(std::uint16_t host_val) {
+    PacketWriter& writeInt16(std::uint16_t host_val) {
         std::uint16_t net_val = htons(host_val);
         packet_.insert(packet_.end(), reinterpret_cast<std::uint8_t*>(&net_val), reinterpret_cast<std::uint8_t*>(&net_val) + sizeof(net_val));
+        return *this;
     }
-    void writeInt8(std::uint8_t host_val) {  //no conversion needed
-        packet_.push_back(host_val);
-    }
-    void writeInt32(std::int32_t host_val) {
+    PacketWriter& writeInt32(std::int32_t host_val) {
         writeInt32(static_cast<std::uint32_t>(host_val));
+        return *this;
     }
-    void writeInt16(std::int16_t host_val) {
+    PacketWriter& writeInt16(std::int16_t host_val) {
         writeInt16(static_cast<std::uint16_t>(host_val));
+        return *this;
     }
-    void writeInt8(std::int8_t host_val) {
+    PacketWriter& writeInt8(std::uint8_t host_val) {  //no conversion needed
+        packet_.push_back(host_val);
+        return *this;
+    }
+    PacketWriter& writeInt8(std::int8_t host_val) {
         writeInt8(static_cast<std::uint8_t>(host_val));
+        return *this;
     }
     std::vector<std::uint8_t>* takePacket() {  //read-only
         return &packet_;

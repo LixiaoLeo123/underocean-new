@@ -18,10 +18,10 @@ struct DBitset {  //faster, can iterate by 64-bit chunk
     void reset() {
         std::fill(std::begin(words), std::end(words), 0ULL);
     }
-    bool test(Entity id) const {
+    [[nodiscard]] bool test(Entity id) const {
         return words[id >> 6] & (1ULL << (id & 63));
     }
-    const uint64_t* data() const { return words; }
+    [[nodiscard]] const uint64_t* data() const { return words; }
     DBitset operator~() const {
         DBitset result;
         for (size_t i = 0; i < WORD_COUNT; ++i) {

@@ -6,28 +6,32 @@
 #define UNDEROCEAN_NETWORKSYNCSYSTEM_H
 #include "ISystem.h"
 #include "common/Types.h"
-#include "server/core/GameData.h"
+#include "common/net(depricate)/PacketWriter.h"
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
-#include "server/new/resources/GridResource.h"
-#include <windows.h>
 
 #include "common/utils/DBitset.h"
+#include "server/new/EventBus.h"
 
+class LevelBase;
 class GameServer;
 
 class NetworkSyncSystem : public ISystem {
 private:
     Signature signature_ {};
+    Signature aoiSignature_ {}; //for entities in aoi which need to sync
     Coordinator& coord_;
     GameServer& server_;  //use to send data
-    struct PeerAOI {  //
+    LevelBase& level_;   //use to get map size
+    DBitset sizeChangedBits_;  //entities that size changed this frame
+    struct PeerAOI {
         DBitset current;
         DBitset last;
         DBitset enterBits;  //for cache
         DBitset leaveBits;
         std::vector<Entity> enterList;   //buffer that can be used multiple times
         std::vector<Entity> leaveList;
+        std::vector<Entity> dynamicList;  //all current entities
     };
     std::unordered_map<ENetPeer*, PeerAOI> peerAOIs;
     static void extractIDs(const DBitset& bits, std::vector<Entity>& out) {
@@ -44,14 +48,26 @@ private:
             }
         }
     }
+    void onEntitySizeChange(const EntitySizeChangeEvent& event);
 public:
-    explicit NetworkSyncSystem(Coordinator& coordinator, GameServer& server)
-        :coord_(coordinator), server_(server) {
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<NetworkPeer>()), true);
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<EntityType>()), true);
+    explicit NetworkSyncSystem(Coordinator& coordinator, GameServer& server, LevelBase& level, EventBus& eventbus)
+        :coord_(coordinator), server_(server), level_(level) {
+        signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
+        signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
+        signature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
         coord_.registerSystem(signature_);
+        eventbus.subscribe<EntitySizeChangeEvent>([this](const EntitySizeChangeEvent& event) {
+            this->onEntitySizeChange(event);
+        });
+        {
+            aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
+            aoiSignature_.set(Coordinator::getComponentTypeID<Transform>(), true);
+            aoiSignature_.set(Coordinator::getComponentTypeID<Size>(), true);
+        }
     }
     void update(float dt) override;
 };
+inline void NetworkSyncSystem::onEntitySizeChange(const EntitySizeChangeEvent &event) {
+    sizeChangedBits_.set(event.entity);
+}
 #endif //UNDEROCEAN_NETWORKSYNCSYSTEM_H

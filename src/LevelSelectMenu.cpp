@@ -2,7 +2,7 @@
 #include "client/common/ResourceManager.h"
 #include "server/core/GameData.h"
 #define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
-LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, std::string ip, int port)
+LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, std::string ip, int port)  //from start menu
     : title_(title), LazyPanelScene(WIDTH, HEIGHT),
       levelButtons_{
           {
@@ -49,11 +49,11 @@ LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, 
         });
     }
     for (int i = 0; i < 6; ++i) add(levelButtons_[i]);
-    if (!networkDriver_.connect(ip, port)) throw std::runtime_error("Error building connection");  //do something
-    networkDriver_.setOnConnect([this](){
+    if (!networkDriver_->connect(ip, port)) throw std::runtime_error("Error building connection");  //do something
+    networkDriver_->setOnConnect([this](){
         this->handleConnect();
     });
-    networkDriver_.setOnDisconnect([this](){
+    networkDriver_->setOnDisconnect([this](){
         this->handleDisconnect();
     });
 }
@@ -91,11 +91,15 @@ void LevelSelectMenu::reloadUI() {
     }
 }
 void LevelSelectMenu::update(float dt) {
+    if (shouldReloadUI) {
+        reloadUI();
+        shouldReloadUI = false;
+    }
     obj0_.update(dt);
     obj1_.update(dt);
     title_->updateTotal(dt);
     statusIndicator_.update(dt);
-    networkDriver_.pollPacket();   //packet handle start (may call on(dis)connect)
+    networkDriver_->pollPacket();   //packet handle start (may call on(dis)connect)
 }
 void LevelSelectMenu::render(sf::RenderWindow &window) {
     if (advanced) {
@@ -132,15 +136,16 @@ void LevelSelectMenu::handleDisconnect() {
 }
 
 void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum supposed to be in current level
-    if (!networkDriver_.isConnected()) {
+    if (!networkDriver_->isConnected()) {
         statusIndicator_.setStateProcessing();
     }
     else {
+        shouldReloadUI = true;
         SceneSwitchRequest request = {
             SceneSwitchRequest::Push,
             std::make_unique<LevelSelectMenu>(title_, GameData::SERVER_IP, GameData::SERVER_PORT),
             0,
-            0 //means no title anim
+            0
         };
         onRequestSwitch_(request);
     }

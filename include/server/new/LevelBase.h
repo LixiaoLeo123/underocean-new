@@ -28,10 +28,15 @@ public:
             system->update(dt);
         }
     }
+    virtual UVector getMapSize() = 0;
+    virtual std::uint16_t ltonX(float x) = 0;  //local to net x
+    virtual float ntolX(std::uint16_t x) = 0;
+    virtual std::uint16_t ltonY(float y) = 0;  //local to net y
+    virtual float ntolY(std::uint16_t y) = 0;
 private:
     void coreInitialize() {
-        emplaceSystem<GridBuildSystem>(coordinator_);
         coordinator_.emplaceContext<GridResource>();
+        emplaceSystem<GridBuildSystem>(coordinator_);
     }
     void finalInitialize() {   //something that must be done after others are all ok
         emplaceSystem<AccelerationLimitSystem>(coordinator_);

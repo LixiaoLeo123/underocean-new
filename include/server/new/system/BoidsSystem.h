@@ -83,8 +83,8 @@ public:
             }
         };
         auto& grid = coord_.ctx<GridResource>();
-        for (int r = -1; r <= grid.rows_ + 1; ++r) {
-            for (int c = -1; c <= grid.cols_ + 1; ++c) {
+        for (int r = -1; r <= grid.rows_; ++r) {
+            for (int c = -1; c <= grid.cols_; ++c) {
                 auto& cell = grid.cellAt(r, c);
                 if (!cell.isAOI) continue; //far
                 for (Entity e: cell.entities) {

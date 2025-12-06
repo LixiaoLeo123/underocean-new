@@ -33,10 +33,11 @@ private:
     FloatingObj obj1_;   //1-3 then sea, 4-6 then big ball
     StatusIndicator statusIndicator_ {};  //connected?
     bool advanced{ false };  //GameData::level over 3?
+    bool shouldReloadUI{ false };  //when from level scene back here
     std::array<std::shared_ptr<ImageButton>, 6> levelButtons_;
     static constexpr int WIDTH = 576;
     static constexpr int HEIGHT = 324;
-    ClientNetworkDriver networkDriver_;
+    std::shared_ptr<ClientNetworkDriver> networkDriver_;   //can give to levels
     void reloadUI();   //bg, buttons
 };
 #endif //UNDEROCEAN_LEVELSELECTMENU_H

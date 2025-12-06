@@ -7,6 +7,7 @@
 #include <bitset>
 #include "net(depricate)/enet.h"
 #include "net(depricate)/PacketChannel.h"
+#include <cmath>
 //x-macro
 #define ENTITY_TYPES \
 X(SMALL_YELLOW) \
@@ -25,6 +26,12 @@ constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
 using Signature = std::bitset<MAX_COMPONENTS>;
 constexpr float ENTITY_MAX_SIZE = 200.f;
+inline std::uint8_t ltonSize(float size) {    //local size to net size
+    return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
+}
+inline float ntolSize(std::uint8_t netSize) {    //net size to local size
+    return static_cast<float>(netSize) / 255.f * ENTITY_MAX_SIZE;
+}
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
 #define X(name) name,
@@ -37,7 +44,7 @@ namespace ServerTypes {  //packet that server handle
         PKT_CONNECT = 0,   //0 byte
         PKT_DISCONNECT = 1,  //same
         PKT_LEVEL_CHANGE = 2,  //1 byte for to
-        PKT_MESSAGE = 3,   //size unknown
+        PKT_MESSAGE = 3,   //size unknown, both server and client use channel 1
         PKT_TRANSFORM = 4,  //for server, 2*2 byte
         PKT_ACTION = 5,
         PKT_LOGIN = 6,
@@ -47,6 +54,13 @@ namespace ServerTypes {  //packet that server handle
 namespace ClientTypes {  //packet that client handle
     enum PacketType : std::uint8_t {
         PKT_ENTITY_STATIC_DATA = 0,  //for entity first enter aoi, reliable
+        //2 entityID 1 type 1 size 2 netX 2 netY = 8 byte * n
+        PKT_ENTITY_DYNAMIC_DATA = 1, //for entity transform update, unreliable
+        //2 entityID 2 netX 2 netY * n
+        PKT_ENTITY_LEAVE = 2,   //for entity leave aoi, reliable
+        //2 entityID * n
+        PKT_ENTITY_SIZE_CHANGE = 3, //reliable
+        //2 entityID 1 newSize
         COUNT
     };
 }
@@ -108,5 +122,9 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SEPARATION_WEIGHT = 1000.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
+};
+struct EntitySizeChangeEvent {
+    Entity entity;
+    float newSize;
 };
 #endif //UNDEROCEAN_TYPES_H

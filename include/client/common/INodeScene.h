@@ -12,7 +12,7 @@ public:
     void render(sf::RenderWindow& window) override;
     void handleEvent(const sf::Event& event) override {
         assert(!scenes_.empty());
-        scenes_.back()->handleEvent(event);
+        scenes_.back()->handleEvent(event);   //only the top scene can handle event
     }
     void update(float dt) override;
     template<typename T, typename... Args>

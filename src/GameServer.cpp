@@ -12,7 +12,8 @@ GameServer::GameServer(){
     if (!networkDriver_.listen(GameData::SERVER_PORT)) {
         throw std::runtime_error("Error starting server");
     }
-    levels_[0] = std::make_unique<Level1>(*this);
+    levels_[0] = std::make_unique<Level0>();
+    levels_[1] = std::make_unique<Level1>(*this);
     std::cout << "Server started" << std::endl;
 }
 void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;

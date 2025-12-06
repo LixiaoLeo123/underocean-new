@@ -5,13 +5,12 @@
 #ifndef UNDEROCEAN_NETWORKDRIVER_H
 #define UNDEROCEAN_NETWORKDRIVER_H
 #include <iostream>
-#include <ostream>
 #include <queue>
 #include "common/Types.h"
 #include "common/net(depricate)/enet.h"
 using namespace ServerTypes;
 //two channels, 1 for message, 0 for others
-class ServerNetworkDriver {   //receive packet, send packet and distribute by channels
+class ServerNetworkDriver {   //receive packet, send packet and distribute by channels, responsible for handle packet type
 public:
     ServerNetworkDriver() : serverHost_(nullptr) {}
     ~ServerNetworkDriver() {
@@ -21,19 +20,26 @@ public:
     }
     bool listen(int port) {
         ENetAddress address;
-        address.host = ENET_HOST_ANY;
+        enet_address_set_host(&address, "127.0.0.1");
+        //address.host = ENET_HOST_ANY;
         address.port = static_cast<enet_uint16>(port);
         serverHost_ = enet_host_create(&address, SERVER_MAX_CONNECTIONS, 2, 0, 0);
         if (serverHost_ == nullptr) {
+            DWORD err = WSAGetLastError();
+            std::cerr << "enet_host_create failed. WSA Error: " << err << " " << address.port << std::endl;
             return false;
         }
         // enet_host_set_checksum_callback(serverHost_, enet_crc32); if crc32 needed
         return true;
     }
-    void send(const Packet* packet, ENetPeer* peer, int channel, bool reliable = false) {
-        if (!peer) return;
-        ENetPacket* enetPacket = enet_packet_create(packet->data(), packet->size(),
+    void send(const Packet* packet, ENetPeer* peer, int channel, int packetType, bool reliable = false) {  //NOTE: packetType must be valid
+        if (!peer || !packet) return;
+        size_t total = packet->size() + 1; //extra byte for PacketTypeID
+        ENetPacket* enetPacket = enet_packet_create(nullptr, total,
             !reliable ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : ENET_PACKET_FLAG_RELIABLE);
+        if (!enetPacket) return;
+        enetPacket->data[0] = static_cast<uint8_t>(packetType);
+        std::memcpy(enetPacket->data + 1, packet->data(), packet->size());
         enet_peer_send(peer, channel, enetPacket);
     }
     void pollPackets();
@@ -50,6 +56,7 @@ public:
         return true;
     }
     [[nodiscard]] ENetHost* getHost() const { return serverHost_; }
+    ServerNetworkDriver(ServerNetworkDriver const&) = delete;
 private:
     ENetHost* serverHost_;
     std::array<std::queue<std::unique_ptr<NamedPacket>>, PacketType::COUNT> packets_;  //diff types
@@ -78,7 +85,7 @@ inline void ServerNetworkDriver::pollPackets() {
                 auto namedPacket = std::make_unique<NamedPacket>();
                 namedPacket->peer = event.peer;
                 namedPacket->packet.assign(
-                    event.packet->data,
+                    event.packet->data + 1,   //remove type!
                     event.packet->data + event.packet->dataLength
                 );
                 packets_[typeByte].push(std::move(namedPacket));

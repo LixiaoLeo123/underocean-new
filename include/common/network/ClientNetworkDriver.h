@@ -41,9 +41,14 @@ public:
     }
     void setOnConnect(const std::function<void()> &onConnect) { onConnect_ = onConnect; }
     void setOnDisconnect(const std::function<void()> &onDisConnect) { onDisConnect_ = onDisConnect; }
-    void send(const Packet* packet, int channel, bool reliable = false) {
+    void send(const Packet* packet, int channel, int packetType, bool reliable = false) {
         if (!serverPeer_) return;
-        ENetPacket* enetPacket = enet_packet_create(packet->data(), packet->size(), reliable);
+        size_t total = packet->size() + 1; //extra byte for PacketTypeID
+        ENetPacket* enetPacket = enet_packet_create(nullptr, total,
+            !reliable ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : ENET_PACKET_FLAG_RELIABLE);
+        if (!enetPacket) return;
+        enetPacket->data[0] = static_cast<uint8_t>(packetType);
+        std::memcpy(enetPacket->data + 1, packet->data(), packet->size());
         enet_peer_send(serverPeer_, channel, enetPacket);
     }
     bool reconnect() {
@@ -75,7 +80,7 @@ public:
                     uint8_t typeByte = event.packet->data[0];
                     if (typeByte >= PacketType::COUNT) break; //type bad
                     auto packet = std::make_unique<Packet>(
-                        event.packet->data,
+                        event.packet->data + 1,  //remove type
                         event.packet->data + event.packet->dataLength);
                     packets_[typeByte].push(std::move(packet));
                     break;
@@ -97,11 +102,17 @@ public:
             }
         }
     }
-    std::unique_ptr<Packet> popPacket(int channel) {
-        if (packets_[channel].empty()) { return nullptr; }
-        std::unique_ptr<Packet> packet = std::move(packets_[channel].front());
-        packets_[channel].pop();
+    std::unique_ptr<Packet> popPacket(int packetType) {  //caution: must update peer list
+        if (packets_[packetType].empty()) {
+            return nullptr;
+        }
+        std::unique_ptr<Packet> packet = std::move(packets_[packetType].front());
+        packets_[packetType].pop();
         return std::move(packet);
+    }
+    [[nodiscard]] bool hasPacket(int packetType) const {
+        if (packets_[packetType].empty()) return false;
+        return true;
     }
     [[nodiscard]] bool isConnected() const { return connected_; }  //callback func instead
 private:

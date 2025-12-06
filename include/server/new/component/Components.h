@@ -33,6 +33,9 @@ struct MaxAcceleration {
 struct EntityType {   //"imagined" bio type, for boids and texture
     EntityTypeID entityID = EntityTypeID::NONE;
 };
+struct Size {
+    float size = 10.f;  //side length
+};
 struct Boids {};   //mark for boids system, require Entity Type
 struct NetworkPeer {
     ENetPeer* peer = nullptr;

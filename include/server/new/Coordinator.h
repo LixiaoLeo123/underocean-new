@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <algorithm>
 #include <any>
+#include <iostream>
+
 #include "common/Types.h"
 #include "component/ComponentArray.h"
 #include "component/IComponentArray.h"
@@ -88,7 +90,7 @@ public:
     T& ctx() {    //get resource
         ResourceType id = getResourceTypeID<T>();
         auto it = resources.find(id);
-        assert(it != resources.end() && "Resource not set! Did you call setContext<T>()?");
+        assert(it != resources.end() && "Resource not set! Did you call emplaceContext<T>()?");
         void* rawPtr = it->second.get();
         return *static_cast<T*>(rawPtr);
     }
