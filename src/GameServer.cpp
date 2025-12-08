@@ -18,7 +18,7 @@ GameServer::GameServer(){
 }
 void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
     while (networkDriver_.hasPacket(PKT_LOGIN)) {
-        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(4));
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_LOGIN));
         ENetPeer* peer = namedPacket->peer;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //already leave

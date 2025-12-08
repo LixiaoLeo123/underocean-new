@@ -17,7 +17,9 @@
 
 class LevelBase : public ILevel {   //impl basic ecs, abstract
 public:
-    explicit LevelBase(GameServer& server) : entityFactory_(coordinator_), server_(server) {};
+    explicit LevelBase(GameServer& server) : entityFactory_(coordinator_), server_(server) {
+        entityFactory_.initialize();
+    };
     virtual void initialize() {
         coreInitialize();
         customInitialize();
@@ -72,7 +74,7 @@ protected:
     }
     template<typename T>
     T& getSystem() {
-        return systems_[getSystemID<T>()];
+        return *static_cast<T*>(systems_[getSystemID<T>()].get());
     }
 };
 #endif //UNDEROCEAN_LEVELBASE_H

@@ -13,6 +13,7 @@ public :
     static constexpr float PI = 3.1415926f;
     static float distance(UVector a, UVector b);
     static float distance2(UVector a, UVector b);
+    static sf::Vector2f clampVec(const sf::Vector2f& rawVec, float len);
 };
 inline float Physics::distance(UVector a, UVector b) {
     float diffX = a.x - b.x;
@@ -23,5 +24,12 @@ inline float Physics::distance2(UVector a, UVector b) {
     float diffX = a.x - b.x;
     float diffY = a.y - b.y;
     return (diffX * diffX + diffY * diffY);
+}
+inline sf::Vector2f Physics::clampVec(const sf::Vector2f& rawVec, float len) {
+    float rawLen = std::sqrt(rawVec.x * rawVec.x + rawVec.y * rawVec.y);
+    if (rawLen > len) {
+        return sf::Vector2f(rawVec) / rawLen * len;
+    }
+    return {rawVec};
 }
 #endif //UNDEROCEAN_PHYSICS_H

@@ -54,7 +54,7 @@ public:
     }
     [[nodiscard]] ServerNetworkDriver& getNetworkDriver() { return networkDriver_; }
     [[noreturn]] void run() {
-        const float dt = 1.0f / static_cast<float>(GameData::SERVER_TPS); // 服务端固定间隔
+        const float dt = 1.0f / static_cast<float>(GameData::SERVER_TPS);
         auto lastTime = std::chrono::steady_clock::now();
         for (;;) {
             auto now = std::chrono::steady_clock::now();
@@ -94,11 +94,11 @@ inline void GameServer::tryRemovePlayer(ENetPeer* peer) {
 }
 inline void GameServer::handleLevelChangePacket() {
     while (networkDriver_.hasPacket(PKT_LEVEL_CHANGE)) {
-        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(3));
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_LEVEL_CHANGE));
         ENetPeer* peer = namedPacket->peer;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //already leave
-        if (it->second.hasLogin) continue;
+        if (!it->second.hasLogin) continue;
         Packet& packet = namedPacket->packet;
         if (packet.size() != 1) continue;
         int to = packet[0];

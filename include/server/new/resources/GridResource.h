@@ -25,6 +25,7 @@ struct GridResource {
     }
     void clear() {
         for(auto& c : cells_) c.entities.clear();
+        outOfBoundEntities.clear();
     }
     void insert(Entity e, float x, float y) {
         int c = static_cast<int>(x / cellWidth_);

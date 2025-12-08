@@ -10,6 +10,7 @@
 #include "server/new/system/BoidsSystem.h"
 #include "server/new/system/EntityGenerationSystem.h"
 #include "server/new/system/NetworkControlSystem.h"
+#include "server/new/system/NetworkSyncSystem.h"
 
 class Level1 final : public LevelBase {
 public:
@@ -21,6 +22,8 @@ public:
         emplaceSystem<NetworkControlSystem>(coordinator_, server_, MAP_SIZE);
         LevelBase::initialize();
         emplaceSystem<EntityGenerationSystem>(coordinator_, entityFactory_, MAX_ENTITIES);
+        emplaceSystem<NetworkSyncSystem>(coordinator_, server_, *this, eventBus_);
+        getSystem<EntityGenerationSystem>().setGenerationSpeed(1000.f);  //fast spawn
     }
     UVector getMapSize() override {
         return MAP_SIZE;
@@ -52,14 +55,15 @@ protected:
 private:
     static constexpr int MAX_ENTITIES = 500;
     static constexpr UVector MAP_SIZE{1280.f, 720.f};  //decided by bg
-    static constexpr int CHUNK_ROWS = 15;   //about 50 x 50 px
-    static constexpr int CHUNK_COLS = 26;
+    static constexpr int CHUNK_ROWS = 4;   //about 50 x 50 px  15, 26
+    static constexpr int CHUNK_COLS = 6;
     Signature networkSignature_{};
 };
 inline Level1::Level1(GameServer& server): LevelBase(server) {
-    LevelBase::initialize();
+    initialize();
     coordinator_.ctx<GridResource>().init(MAP_SIZE.x, MAP_SIZE.y, CHUNK_COLS, CHUNK_ROWS);  //40x36 chunks
     coordinator_.emplaceContext<PlotContext1>();
+    entityFactory_.setSpawnArea({0.f, 0.f}, {MAP_SIZE.x, MAP_SIZE.y});
     entityFactory_.addWeightedEntry(EntityTypeID::SMALL_YELLOW, 1);
     networkSignature_.set(Coordinator::getComponentTypeID<NetworkPeer>());
     coordinator_.registerSystem(networkSignature_);

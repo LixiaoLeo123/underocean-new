@@ -16,7 +16,16 @@ void EntityFactory::initialize() {
             coord_.addComponent(newEntity, entityType);
         }
         {  //max velocity (can change)
-            coord_.addComponent(newEntity, ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
+            MaxVelocity maxVelocity = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY};
+            coord_.addComponent(newEntity, maxVelocity);
+        }
+        {  //max acceleration
+            MaxAcceleration maxAcceleration = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_ACCELERATION};
+            coord_.addComponent(newEntity, maxAcceleration);
+        }
+        {  //size
+            MaxAcceleration size = {ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE};
+            coord_.addComponent(newEntity, size);
         }
         if (!isPlayer) {  //boids
             coord_.addComponent(newEntity, Boids{});

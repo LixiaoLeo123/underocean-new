@@ -40,6 +40,10 @@ public:
         writeInt8(static_cast<std::uint8_t>(host_val));
         return *this;
     }
+    PacketWriter& writeStr(char* str, std::size_t length) {  //no null-terminator
+        packet_.insert(packet_.end(), reinterpret_cast<std::uint8_t*>(str), reinterpret_cast<std::uint8_t*>(str) + length);
+        return *this;
+    }
     std::vector<std::uint8_t>* takePacket() {  //read-only
         return &packet_;
     }

@@ -23,6 +23,7 @@ public:
 inline void GridBuildSystem::update(float dt) {
     auto& grid = coord_.ctx<GridResource>();
     const auto& entities = coord_.getEntitiesWith(signature_);
+    grid.clear();
     for (Entity e : entities) {
         Transform pos = coord_.getComponent<Transform>(e);
         grid.insert(e, pos.x, pos.y);

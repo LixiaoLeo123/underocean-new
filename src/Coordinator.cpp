@@ -9,5 +9,6 @@ Coordinator::Coordinator(){
     registerComponent<EntityType>();
     registerComponent<Boids>();
     registerComponent<NetworkPeer>();
-    registerSystem(Signature());  //empty to get to
+    registerComponent<Size>();
+    registerSystem(Signature{});  //empty to get to
 }

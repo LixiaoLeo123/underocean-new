@@ -9,6 +9,7 @@
 #include "client/scenes/LazyPanelScene.h"
 #include "client/ui/widgets/ImageButton.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
+#include "common/net(depricate)/PacketWriter.h"
 #include "common/network/ClientNetworkDriver.h"
 class LevelSelectMenu : public LazyPanelScene {  //network start, real client
 public:
@@ -26,6 +27,7 @@ public:
     void handleConnect();  //callback
     void handleDisconnect();
     void handleLevelButtonClick(int levelNum);   //callback
+    void sendLoginPacket();
 private:
     std::shared_ptr<SmoothTextLabel> title_;
     sf::Sprite background_;
@@ -38,6 +40,7 @@ private:
     static constexpr int WIDTH = 576;
     static constexpr int HEIGHT = 324;
     std::shared_ptr<ClientNetworkDriver> networkDriver_;   //can give to levels
+    PacketWriter writer_;  //reuse
     void reloadUI();   //bg, buttons
 };
 #endif //UNDEROCEAN_LEVELSELECTMENU_H

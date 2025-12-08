@@ -26,7 +26,7 @@ public:
             static float accumulator = 0.0f;
             static float lastTime = currentTime;
             static float lastInputTime = currentTime;
-            sf::Event event;
+            sf::Event event {};
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed)
                     window.close();

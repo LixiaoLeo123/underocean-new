@@ -21,6 +21,8 @@ private:
     sf::Vector2f spawnAreaTo_ {};   //spawn area
     std::vector<std::function<Entity(bool isPlayer)>> spawnFunctions_;  //spawn and get Entity value
     std::vector<WeightedEntry> weightedEntries_ {};
+    std::discrete_distribution<size_t> dist;
+    // bool spawnFunctionsEmpty{ true };  // prevent spawnRandom before initialize
     bool distDirty_{ false };  //see spawnRandom
     void registerSpawner(EntityTypeID id, std::function<Entity(bool isPlayer)> func) {        //spawnFunctions_.push_back
         auto index = static_cast<size_t>(id);
@@ -47,9 +49,9 @@ public:
     }
     void addWeightedEntry(EntityTypeID id, double weight) {
         weightedEntries_.push_back({id, weight});
+        distDirty_ = true;
     }
     Entity spawnRandom(bool isPlayer = false) {   //with weight in weightedEntries
-        static std::discrete_distribution<size_t> dist;
         if (distDirty_) {   //after weightedEntries change
             std::vector<double> weights;
             weights.reserve(weightedEntries_.size());
@@ -60,7 +62,7 @@ public:
             distDirty_ = false;
         }
         size_t index = dist(gen_);
-        return spawnFunctions_[index](isPlayer);
+        return spawnFunctions_[static_cast<size_t>(weightedEntries_[index].type)](isPlayer);
     }
 };
 #endif //UNDEROCEAN_ENTITYFACTORY_H

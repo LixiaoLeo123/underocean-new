@@ -11,31 +11,20 @@
 
 template<typename Stream, typename Op>
 void GameData::processSettings(Stream& stream, Op op) {
-    op(stream, COLLIDER_TYPE);
-    op(stream, TPS);
-    op(stream, FPS);
-    op(stream, IPS);
-    op(stream, SERVER_TPS);
-    op(stream, ENTITY_SYNC_RADIUS_X);
-    op(stream, ENTITY_SYNC_RADIUS_Y);
-    op(stream, CAMERA_ALPHA);
-    op(stream, playerId);
-    op(stream, currentLevel);
-    op(stream, SERVER_IP);
-    op(stream, SERVER_PORT);
+#define X(type, name, default_val) op(stream, name);
+#define X_ARRAY(type, name, size, default_val) op(stream, name);
+    GAMEDATA_CONFIG_ENTRIES
+#undef X_ARRAY
+#undef X
 }
 void GameData::resetSettings() {   //no file change
-    TPS = 40;    //ticks per second on client
-    FPS = 60;    //frames per second
-    IPS = 20;   //input read per second(see inputmanager::update())
-    SERVER_TPS = 40;   //ticks per second on server/game
-    ENTITY_SYNC_RADIUS_X = 2;   //NetworkSyncSystem
-    ENTITY_SYNC_RADIUS_Y = 1;
-    CAMERA_ALPHA = 0.02f;
-    playerId[0] = '@';   //@ means not set yet
-    currentLevel = 6;
-    std::strncpy(SERVER_IP, "127.0.0.1", sizeof(SERVER_IP) - 1);  //only used by client
-    SERVER_PORT = 51015;
+#define X(type, name, default_val) name = default_val;
+#define X_ARRAY(type, name, size, default_val) \
+std::strncpy(name, default_val, size - 1); \
+name[size - 1] = '\0';
+    GAMEDATA_CONFIG_ENTRIES
+#undef X
+#undef X_ARRAY
 }
 void GameData::loadSettings() {    //if file not exist then create a new
     std::ifstream file("settings.cfg", std::ios::binary);

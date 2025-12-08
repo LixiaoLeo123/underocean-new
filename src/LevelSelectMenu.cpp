@@ -1,9 +1,11 @@
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 #include "client/common/ResourceManager.h"
+#include "client/scenes/levelscenes/LevelScene1.h"
 #include "server/core/GameData.h"
+#include "server/new/levels/Level0.h"
 #define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
 LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, std::string ip, int port)  //from start menu
-    : title_(title), LazyPanelScene(WIDTH, HEIGHT),
+    : title_(title), LazyPanelScene(WIDTH, HEIGHT), networkDriver_(std::make_shared<ClientNetworkDriver>()),
       levelButtons_{
           {
               std::make_shared<ImageButton>(ResourceManager::getTexture("images/icons/glevel1.png"),
@@ -130,11 +132,18 @@ void LevelSelectMenu::handleEvent(const sf::Event &event) {
 }
 void LevelSelectMenu::handleConnect() {
     statusIndicator_.setStateConnected();
+    sendLoginPacket();
 }
 void LevelSelectMenu::handleDisconnect() {
     statusIndicator_.setStateConnecting();
 }
-
+void LevelSelectMenu::sendLoginPacket() {
+    writer_.writeStr(GameData::playerId, 16)
+        .writeInt8(static_cast<std::uint8_t>(GameData::playerType))
+        .writeInt8(static_cast<std::uint8_t>(GameData::playerSize));
+    networkDriver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LOGIN, 1);
+    writer_.clearBuffer();
+}
 void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum supposed to be in current level
     if (!networkDriver_->isConnected()) {
         statusIndicator_.setStateProcessing();
@@ -143,7 +152,7 @@ void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum suppose
         shouldReloadUI = true;
         SceneSwitchRequest request = {
             SceneSwitchRequest::Push,
-            std::make_unique<LevelSelectMenu>(title_, GameData::SERVER_IP, GameData::SERVER_PORT),
+            std::make_unique<LevelScene1>(networkDriver_),
             0,
             0
         };

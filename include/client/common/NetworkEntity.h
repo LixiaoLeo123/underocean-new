@@ -6,6 +6,8 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <algorithm>
 
+#include "ResourceManager.h"
+#include "common/Types.h"
 #include "server/core/GameData.h"
 
 class NetworkEntity {
@@ -15,7 +17,7 @@ public:
       velocity_(0.f,0.f),
       interpTimer_(0.f),
       hasNet_(false), hasPrevNet_(false), SERVER_DT_(1.f / GameData::SERVER_TPS) {}
-    void render(sf::RenderWindow& window) {
+    void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
     }
     // Immediate local placement (no interpolation)
@@ -27,6 +29,7 @@ public:
         hasPrevNet_ = false;
         velocity_ = {0.f, 0.f};
     }
+    void setPos(sf::Vector2f pos){ setPos(pos.x, pos.y); }
     // server sends only position and server update interval
     void setNetworkState(const sf::Vector2f& pos) {
         if (!hasNet_) {
@@ -52,33 +55,17 @@ public:
     }
     // Call each frame with delta time in seconds
     void update(float dt) {
-        if (!hasNet_) {
-            // no server info: simple prediction by last known velocity
-            clientPos_ += velocity_ * dt;
-            sprite_.setPosition(clientPos_);
-            return;
-        }
-        if (!hasPrevNet_) {
-            // only one sample received: snap to it (or could hold/extrapolate)
-            clientPos_ = netPos_;
-            sprite_.setPosition(clientPos_);
-            return;
-        }
-        interpTimer_ += dt;
-        if (interpTimer_ <= SERVER_DT_) {
-            float t = interpTimer_ / SERVER_DT_;
-            // smoothstep easing
-            float s = t * t * (3.f - 2.f * t);   //smooth
-            clientPos_ = lerp(prevNetPos_, netPos_, s);
-            sprite_.setPosition(clientPos_);
-        } else {
-            // updates are late: extrapolate using derived velocity
-            float extra = interpTimer_ - SERVER_DT_;
-            clientPos_ = netPos_ + velocity_ * extra;
-            sprite_.setPosition(clientPos_);
-        }
+        updatePos(dt);
+        updateAngle();
+        updateAnim(dt);
     }
-    void setSprite(const sf::Sprite& s) { sprite_ = s; }
+    void updatePos(float dt);
+    void updateAngle();
+    void updateAnim(float dt);
+    void setType(EntityTypeID type);
+    void setSize(float size);
+    [[nodiscard]] sf::Vector2f getPosition() const { return clientPos_; }
+    [[nodiscard]] sf::Vector2f getVelocity() const { return velocity_; }
 private:
     static sf::Vector2f lerp(const sf::Vector2f& a, const sf::Vector2f& b, float t) {
         return { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
@@ -92,6 +79,62 @@ private:
     float interpTimer_;    // time since last authoritative update
     bool hasNet_;
     bool hasPrevNet_;
+    int totalFrames_{ -1 };   // decided by type
+    float frameInterval_{ -1.f }; // time per frame
+    int frameWidth_{ -1 };   // decided by type
+    int frameHeight_{ -1 };  // decided by type
 };
-
+inline void NetworkEntity::setType(EntityTypeID type) {
+    sprite_.setTexture(ResourceManager::getTexture(getTexturePath(type)));
+    totalFrames_ = getTextureTotalFrame(type);
+    frameInterval_ = getFrameInterval(type);
+    frameHeight_ = sprite_.getTexture()->getSize().y;
+    frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
+    sprite_.setOrigin(frameWidth_ / 2.f, frameHeight_ / 2.f);
+}
+inline void NetworkEntity::setSize(float size) {
+    assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
+    float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x);
+    sprite_.setScale(scale, scale);
+}
+inline void NetworkEntity::updatePos(float dt) {
+    if (!hasNet_) {
+        // no server info: simple prediction by last known velocity
+        clientPos_ += velocity_ * dt;
+        sprite_.setPosition(clientPos_);
+        return;
+    }
+    if (!hasPrevNet_) {
+        // only one sample received: snap to it (or could hold/extrapolate)
+        clientPos_ = netPos_;
+        sprite_.setPosition(clientPos_);
+        return;
+    }
+    interpTimer_ += dt;
+    if (interpTimer_ <= SERVER_DT_) {
+        float t = interpTimer_ / SERVER_DT_;
+        // smoothstep easing
+        float s = t * t * (3.f - 2.f * t);   //smooth
+        clientPos_ = lerp(prevNetPos_, netPos_, s);
+        sprite_.setPosition(clientPos_);
+    } else {
+        // updates are late: extrapolate using derived velocity
+        float extra = interpTimer_ - SERVER_DT_;
+        clientPos_ = netPos_ + velocity_ * extra;
+        sprite_.setPosition(clientPos_);
+    }
+}
+inline void NetworkEntity::updateAngle() {
+    if (velocity_.x == 0.f && velocity_.y == 0.f) return; // no movement, no rotation
+    float angle = std::atan2(velocity_.y, velocity_.x) * 180.f / 3.14159265f;
+    sprite_.setRotation(angle);
+}
+inline void NetworkEntity::updateAnim(float dt) {
+    // update the frame of sprite texture
+    // example:
+    static float animTimer = 0.f;
+    animTimer += dt;
+    int frame = static_cast<int>(animTimer / frameInterval_) % totalFrames_;
+    sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
+}
 #endif // UNDEROCEAN_NETWORKENTITY_H

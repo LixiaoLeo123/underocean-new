@@ -48,6 +48,7 @@ namespace ServerTypes {  //packet that server handle
         PKT_TRANSFORM = 4,  //for server, 2*2 byte
         PKT_ACTION = 5,
         PKT_LOGIN = 6,
+        // char[16] playerId; uint8 type; uint8 size, total 18 byte
         COUNT
     };
 }
@@ -76,9 +77,9 @@ namespace ClientTypes {  //packet that client handle
 constexpr int SERVER_MAX_CONNECTIONS = 32;
 constexpr int SERVER_MAX_BUFFER_SIZE = 100; //100 packets in buffer max!
 constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds, depricate
-constexpr int PING_TIMES = 32;   //times that tried to ack
-constexpr int PING_TIMEOUT_MIN = 5;
-constexpr int PING_TIMEOUT_MAX = 10;
+constexpr int PING_TIMES = 128;   //times that tried to ack
+constexpr int PING_TIMEOUT_MIN = 10;
+constexpr int PING_TIMEOUT_MAX = 20;
 constexpr int CELL_INIT_RESERVATION = 32;   //see GridResource
 struct PlayerData {  //related to GameServer::handleLoginPacket()!!
     ENetPeer* peer = nullptr;
@@ -113,7 +114,9 @@ inline std::string getLocalString(MsgId id) {  //same
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
-    static constexpr float MAX_VELOCITY = 10.f;
+    static constexpr float MAX_VELOCITY = 100.f;
+    static constexpr float MAX_ACCELERATION = 100.f;
+    static constexpr float INIT_SIZE = 20.f;
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 100.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -127,4 +130,54 @@ struct EntitySizeChangeEvent {
     Entity entity;
     float newSize;
 };
+constexpr const char* getTexturePath(EntityTypeID type) {
+    using ET = EntityTypeID;
+    constexpr const char* paths[] = {
+        "images/fish/none.png",           // NONE = 0
+        "images/fish/small_yellow.png",   // SMALL_YELLOW
+        "images/fish/round_green.png",    // ROUND_GREEN
+        "images/fish/ball_orange.png",    // BALL_ORANGE
+        "images/fish/fly_fish.png",       // FLY_FISH
+        "images/fish/blue_long.png",      // BLUE_LONG
+        "images/fish/red_light.png",      // RED_LIGHT
+        "images/fish/ugly_fish.png",      // UGLY_FISH
+        "images/fish/small_shark.png"     // SMALL_SHARK
+    };
+    static_assert(sizeof(paths) / sizeof(paths[0]) == static_cast<size_t>(ET::COUNT),
+                  "Texture path array size mismatch!");
+    auto idx = static_cast<std::size_t>(type);
+    return paths[idx];
+}
+constexpr int getTextureTotalFrame(EntityTypeID type) {
+    constexpr int frames[] = {
+        1,  // NONE = 0
+        2,  // SMALL_YELLOW
+        2,  // ROUND_GREEN
+        2,  // BALL_ORANGE
+        2,  // FLY_FISH
+        2,  // BLUE_LONG
+        2,  // RED_LIGHT
+        2,  // UGLY_FISH
+        2   // SMALL_SHARK
+    };
+    static_assert(sizeof(frames) / sizeof(frames[0]) == static_cast<size_t>(static_cast<EntityTypeID>(EntityTypeID::COUNT)),
+                  "Texture frame array size mismatch!");
+    auto idx = static_cast<std::size_t>(type);
+    return frames[idx];
+}
+constexpr float getFrameInterval(EntityTypeID type) {
+    switch (type) {
+        case EntityTypeID::SMALL_YELLOW:
+        case EntityTypeID::ROUND_GREEN:
+        case EntityTypeID::BALL_ORANGE:
+        case EntityTypeID::FLY_FISH:
+        case EntityTypeID::BLUE_LONG:
+        case EntityTypeID::RED_LIGHT:
+        case EntityTypeID::UGLY_FISH:
+        case EntityTypeID::SMALL_SHARK:
+            return 0.2f;   //5 fps
+        default:
+            return 1.f;   //1 fps
+    }
+}
 #endif //UNDEROCEAN_TYPES_H

@@ -50,12 +50,14 @@ private:
     }
     void onEntitySizeChange(const EntitySizeChangeEvent& event);
 public:
-    explicit NetworkSyncSystem(Coordinator& coordinator, GameServer& server, LevelBase& level, EventBus& eventbus)
-        :coord_(coordinator), server_(server), level_(level) {
-        signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
-        signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
-        signature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
-        coord_.registerSystem(signature_);
+    explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
+        : coord_(coordinator), server_(server), level_(level) {
+        {
+            signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
+            signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
+            signature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
+            coord_.registerSystem(signature_);
+        }
         eventbus.subscribe<EntitySizeChangeEvent>([this](const EntitySizeChangeEvent& event) {
             this->onEntitySizeChange(event);
         });
@@ -63,6 +65,7 @@ public:
             aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
             aoiSignature_.set(Coordinator::getComponentTypeID<Transform>(), true);
             aoiSignature_.set(Coordinator::getComponentTypeID<Size>(), true);
+            coord_.registerSystem(aoiSignature_);
         }
     }
     void update(float dt) override;

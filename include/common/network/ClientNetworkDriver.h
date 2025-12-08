@@ -25,7 +25,11 @@ public:
         }
     }
     bool connect(const std::string& ip, int port) {
-        clientHost_ = enet_host_create(nullptr, 1, 2, 0, 0);
+        ENetAddress clientAddr;
+        clientAddr.host = ENET_HOST_ANY;
+        clientAddr.port = 0; // 0 = 系统随机
+        clientHost_ = enet_host_create(&clientAddr, 1, 2, 0, 0);
+        // clientHost_ = enet_host_create(nullptr, 1, 2, 0, 0);
         if (clientHost_ == nullptr) {
             return false;
         }

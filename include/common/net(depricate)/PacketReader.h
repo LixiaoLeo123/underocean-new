@@ -13,8 +13,11 @@ class PacketReader {
 public:
     explicit PacketReader(std::vector<std::uint8_t>&& packet)
         :packet_(std::move(packet)){}
-    bool canRead(int bytes) const {
+    [[nodiscard]] bool canRead(int bytes) const {
         return (index_ + bytes) <= packet_.size();
+    }
+    [[nodiscard]] bool hasNext() const {
+        return index_ < packet_.size();
     }
     std::int8_t nextInt8() {   //must add check
         assert(index_ + 1 <= packet_.size());
