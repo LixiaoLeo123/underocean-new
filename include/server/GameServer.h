@@ -113,16 +113,16 @@ inline void GameServer::handleMessagePacket() {  //only distribute, broadcast
     while (networkDriver_.hasPacket(PKT_MESSAGE)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_MESSAGE));
         for (auto pair : playerList_) {
-            networkDriver_.send(&namedPacket->packet, pair.first, 1, PKT_MESSAGE, true);
+            networkDriver_.send(&namedPacket->packet, pair.first, 1, ClientTypes::PKT_MESSAGE, true);
         }
     }
 }
 inline void GameServer::broadcast(std::string message) {
     if (message.size() > 10000) return;   //large packet, dont handle
-    std::vector<std::uint8_t> packet = { PKT_DISCONNECT };
+    std::vector<std::uint8_t> packet;
     packet.insert(packet.end(), message.begin(), message.end());
     for (auto pair : playerList_) {
-        networkDriver_.send(&packet, pair.first, 1, PKT_MESSAGE, true);
+        networkDriver_.send(&packet, pair.first, 1, ClientTypes::PKT_MESSAGE, true);
     }
 }
 

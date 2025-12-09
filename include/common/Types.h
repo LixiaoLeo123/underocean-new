@@ -20,7 +20,7 @@ X(UGLY_FISH) \
 X(SMALL_SHARK)
 
 using Entity = std::uint16_t;
-constexpr Entity MAX_ENTITIES = 4096;     //512 byte
+constexpr Entity MAX_ENTITIES = 16384;     //2048 byte
 using ComponentType = std::uint8_t;
 constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
@@ -62,6 +62,7 @@ namespace ClientTypes {  //packet that client handle
         //2 entityID * n
         PKT_ENTITY_SIZE_CHANGE = 3, //reliable
         //2 entityID 1 newSize
+        PKT_MESSAGE = 4,
         COUNT
     };
 }
@@ -76,10 +77,10 @@ namespace ClientTypes {  //packet that client handle
 // }
 constexpr int SERVER_MAX_CONNECTIONS = 32;
 constexpr int SERVER_MAX_BUFFER_SIZE = 100; //100 packets in buffer max!
-constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds, depricate
+constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds
 constexpr int PING_TIMES = 128;   //times that tried to ack
-constexpr int PING_TIMEOUT_MIN = 10;
-constexpr int PING_TIMEOUT_MAX = 20;
+constexpr int PING_TIMEOUT_MIN = 10000;
+constexpr int PING_TIMEOUT_MAX = 20000;
 constexpr int CELL_INIT_RESERVATION = 32;   //see GridResource
 struct PlayerData {  //related to GameServer::handleLoginPacket()!!
     ENetPeer* peer = nullptr;
@@ -114,14 +115,14 @@ inline std::string getLocalString(MsgId id) {  //same
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
-    static constexpr float MAX_VELOCITY = 100.f;
-    static constexpr float MAX_ACCELERATION = 100.f;
-    static constexpr float INIT_SIZE = 20.f;
-    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float MAX_VELOCITY = 10.f;
+    static constexpr float MAX_ACCELERATION = 40.f;
+    static constexpr float INIT_SIZE = 6.f;
+    static constexpr int PERCEPTION_DIST = 3;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 100.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
     static constexpr float AVOID_RADIUS2 = 300.f;
-    static constexpr float COHESION_WEIGHT = 20.f;
+    static constexpr float COHESION_WEIGHT = 200.f;
     static constexpr float SEPARATION_WEIGHT = 1000.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
@@ -175,7 +176,7 @@ constexpr float getFrameInterval(EntityTypeID type) {
         case EntityTypeID::RED_LIGHT:
         case EntityTypeID::UGLY_FISH:
         case EntityTypeID::SMALL_SHARK:
-            return 0.2f;   //5 fps
+            return 1.f;   //5 fps
         default:
             return 1.f;   //1 fps
     }

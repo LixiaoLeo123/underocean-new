@@ -74,8 +74,8 @@ protected:
 private:
     sf::View view_ {};
     bool viewInit_ { false };  //not init
-    constexpr static float VIEW_WIDTH = 160.f;
-    constexpr static float VIEW_HEIGHT = 90.f;
+    constexpr static float VIEW_WIDTH = 90.f;
+    constexpr static float VIEW_HEIGHT = 50.f;
     float accDisRatio_ { -1.f };
 protected:
     std::unordered_map<Entity, NetworkEntity> entities_;
@@ -98,7 +98,7 @@ inline void LevelSceneBase::update(float dt) {
         playerRawAcc = accDisRatio_ * dir;
     }
     else {
-        playerRawAcc = -0.3f * dt * player.getVelocity();
+        playerRawAcc = -10.f * dt * player.getVelocity();
     }
     player.update(dt, playerRawAcc);
     //move view toward player position
@@ -107,7 +107,7 @@ inline void LevelSceneBase::update(float dt) {
     //send player pos packet to server
     writer_.writeInt16(ltonX(player.getPosition().x))
         .writeInt16(ltonY(player.getPosition().y));
-    driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_TRANSFORM, 1);
+    driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_TRANSFORM, false);
     writer_.clearBuffer();
 }
 inline void LevelSceneBase::handleEntityStaticData() {

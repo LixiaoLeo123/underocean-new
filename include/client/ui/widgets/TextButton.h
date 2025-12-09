@@ -95,8 +95,8 @@ public:
         return text_.getGlobalBounds();
     }
 private:
-    constexpr static float shakeMoveIntensity_ = 2.0f;
-	constexpr static float shakeAngleIntensity_ = 2.0f;
+    constexpr static float shakeMoveIntensity_ = 2.f;
+	constexpr static float shakeAngleIntensity_ = 2.f;
     bool isHoveredAt() const;
     bool isPressed_ = false;
     bool isHovered_ = false;

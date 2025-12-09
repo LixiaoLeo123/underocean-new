@@ -6,14 +6,14 @@
 #define UNDEROCEAN_GAMEDATA_H
 #define GAMEDATA_CONFIG_ENTRIES \
 X(ColliderType, COLLIDER_TYPE, OBB) \
-X(int, TPS, 40) \
+X(int, TPS, 60) \
 X(int, FPS, 60) \
 X(int, IPS, 20) \
-X(int, SERVER_TPS, 40) \
-X(int, ENTITY_SYNC_RADIUS_X, 10) \
-X(int, ENTITY_SYNC_RADIUS_Y, 5) \
-X(float, CAMERA_ALPHA, 0.02f) \
-X_ARRAY(char, playerId, 16, "@") \
+X(int, SERVER_TPS, 20) \
+X(int, ENTITY_SYNC_RADIUS_X, 2) \
+X(int, ENTITY_SYNC_RADIUS_Y, 1) \
+X(float, CAMERA_ALPHA, 0.05f) \
+X_ARRAY(char, playerId, 16, "drantiss") \
 X(int, currentLevel, 6) \
 X(int, playerType, static_cast<int>(EntityTypeID::SMALL_YELLOW)) \
 X(float, playerSize, 20.f) \

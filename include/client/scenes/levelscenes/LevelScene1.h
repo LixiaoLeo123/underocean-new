@@ -11,30 +11,33 @@ class LevelScene1 : public LevelSceneBase {
 public:
     explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver)
         :LevelSceneBase(driver) {
+        player.setBorder(MAP_SIZE.x, MAP_SIZE.y);
         background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg4/bg4.png"));
         writer_.writeInt8(static_cast<std::uint8_t>(1));  //to level 1
         driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LEVEL_CHANGE, 1);
         writer_.clearBuffer();
     }
     std::uint16_t ltonX(float x) override {
-        float norm = 1 / (2 + CHUNK_COLS) + x / (MAP_SIZE.x) / (1 + 2.f / CHUNK_COLS);
+        float norm = 1.f / (2 + CHUNK_COLS) + x / (MAP_SIZE.x) / (1 + 2.f / CHUNK_COLS);
         norm = std::clamp(norm, 0.f, 1.f);
         return static_cast<std::uint16_t>(std::round(norm * 65535.f));
     }
     float ntolX(std::uint16_t x) override {
         float norm = static_cast<float>(x) / 65535.f;
-        norm = (norm - 1.f) * (1 + 2.f / CHUNK_COLS);
+        float offset = 1.f / (2 + CHUNK_COLS);
+        norm = (norm - offset) * (1 + 2.f / CHUNK_COLS);
         return norm * MAP_SIZE.x;
-    };
-    std::uint16_t ltonY(float y) override {
-        float norm = 1 / (2 + CHUNK_ROWS) + y / (MAP_SIZE.y) / (1 + 2.f / CHUNK_ROWS);
-        norm = std::clamp(norm, 0.f, 1.f);
-        return static_cast<std::uint16_t>(std::round(norm * 65535.f));
-    };
+    }
     float ntolY(std::uint16_t y) override {
         float norm = static_cast<float>(y) / 65535.f;
-        norm = (norm - 1.f) * (1 + 2.f / CHUNK_ROWS);
+        float offset = 1.f / (2 + CHUNK_ROWS);
+        norm = (norm - offset) * (1 + 2.f / CHUNK_ROWS);
         return norm * MAP_SIZE.y;
+    }
+    std::uint16_t ltonY(float y) override {
+        float norm = 1.f / (2 + CHUNK_ROWS) + y / (MAP_SIZE.y) / (1 + 2.f / CHUNK_ROWS);
+        norm = std::clamp(norm, 0.f, 1.f);
+        return static_cast<std::uint16_t>(std::round(norm * 65535.f));
     }
     UVector getMapSize() override { return MAP_SIZE; };
 private:

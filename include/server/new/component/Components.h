@@ -40,6 +40,7 @@ struct Boids {};   //mark for boids system, require Entity Type
 struct NetworkPeer {
     ENetPeer* peer = nullptr;
 };
+struct ForceLoadChunk {};   //enable aoi in GridBuildSystem
 struct UVector {   //not a component, just for vector calculation, U for unified
     float x;
     float y;

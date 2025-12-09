@@ -11,6 +11,10 @@ void EntityFactory::initialize() {
                 Random::randFloat(spawnAreaFrom_.y, spawnAreaTo_.y)};
             coord_.addComponent(newEntity, transform);
         }
+        {  //transform
+            Acceleration acceleration{};
+            coord_.addComponent(newEntity, acceleration);
+        }
         {  //entity type
             EntityType entityType = {EntityTypeID::SMALL_YELLOW};
             coord_.addComponent(newEntity, entityType);
@@ -24,7 +28,7 @@ void EntityFactory::initialize() {
             coord_.addComponent(newEntity, maxAcceleration);
         }
         {  //size
-            MaxAcceleration size = {ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE};
+            Size size = {ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE};
             coord_.addComponent(newEntity, size);
         }
         if (!isPlayer) {  //boids
@@ -34,6 +38,10 @@ void EntityFactory::initialize() {
             sf::Vector2f vecVelocity = Random::randUnitVector() * Random::randFloat(0.f,
                 ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
             coord_.addComponent(newEntity, Velocity{vecVelocity.x, vecVelocity.y});
+        }
+        if (isPlayer) {
+            coord_.addComponent(newEntity, ForceLoadChunk{});
+            coord_.getComponent<Velocity>(newEntity) = static_cast<UVector>(coord_.getComponent<Velocity>(newEntity)) * 2;
         }
         coord_.notifyEntityChanged(newEntity);
         return newEntity;

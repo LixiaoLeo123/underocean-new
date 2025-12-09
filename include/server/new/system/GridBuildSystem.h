@@ -15,7 +15,7 @@ public:
     Coordinator& coord_;
     explicit GridBuildSystem(Coordinator& coordinator)  //build grid for all signatures
         :coord_(coordinator){
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
+        signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
         coord_.registerSystem(signature_);
     }
     void update(float dt) override;;
@@ -27,6 +27,9 @@ inline void GridBuildSystem::update(float dt) {
     for (Entity e : entities) {
         Transform pos = coord_.getComponent<Transform>(e);
         grid.insert(e, pos.x, pos.y);
+        if (coord_.hasComponent<ForceLoadChunk>(e)) {
+            grid.setOnAOI(pos.x, pos.y);
+        }
     }
 }
 #endif //UNDEROCEAN_GRIDBUILDSYSTEM_H

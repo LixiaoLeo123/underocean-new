@@ -6,7 +6,6 @@
 #define UNDEROCEAN_NETWORKSYNCSYSTEM_H
 #include "ISystem.h"
 #include "common/Types.h"
-#include "common/net(depricate)/PacketWriter.h"
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
 
@@ -17,6 +16,7 @@ class LevelBase;
 class GameServer;
 
 class NetworkSyncSystem : public ISystem {
+    // TODO: handle entity leave
 private:
     Signature signature_ {};
     Signature aoiSignature_ {}; //for entities in aoi which need to sync

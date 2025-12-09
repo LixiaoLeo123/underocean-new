@@ -81,7 +81,10 @@ inline void ServerNetworkDriver::pollPackets() {
                     break;
                 }
                 uint8_t typeByte = event.packet->data[0];
-                if (typeByte >= PacketType::COUNT) break; //type bad
+                if (typeByte >= PacketType::COUNT) { //type bad
+                    enet_packet_destroy(event.packet);
+                    break;
+                }
                 auto namedPacket = std::make_unique<NamedPacket>();
                 namedPacket->peer = event.peer;
                 namedPacket->packet.assign(
@@ -89,6 +92,7 @@ inline void ServerNetworkDriver::pollPackets() {
                     event.packet->data + event.packet->dataLength
                 );
                 packets_[typeByte].push(std::move(namedPacket));
+                enet_packet_destroy(event.packet);
                 break;
             }
             case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:

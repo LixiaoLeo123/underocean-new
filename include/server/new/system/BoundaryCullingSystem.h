@@ -10,16 +10,17 @@
 #include "server/new/component/Components.h"
 #include "server/new/resources/GridResource.h"
 
-class BoundaryCullinSystem : public ISystem {
+class BoundaryCullingSystem : public ISystem {
 private:
     Coordinator& coord_;
 public:
-    explicit BoundaryCullinSystem(Coordinator& coordinator)
+    explicit BoundaryCullingSystem(Coordinator& coordinator)
         :coord_(coordinator){
     }
     void update(float dt) override {
         auto& grid = coord_.ctx<GridResource>();
         for (Entity e : grid.outOfBoundEntities){
+            if (coord_.hasComponent<NetworkPeer>(e)) continue;  //player
             coord_.destroyEntity(e);
         }
     }

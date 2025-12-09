@@ -43,7 +43,7 @@ void NetworkSyncSystem::update(float dt) {
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.enterList) {
                 if (!writer.canWrite(8)) {
-                    driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_STATIC_DATA, true);
+                    driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_STATIC_DATA, true);
                     writer.clearBuffer();
                 }
                 const auto& entityType = coord_.getComponent<EntityType>(e);
@@ -56,34 +56,37 @@ void NetworkSyncSystem::update(float dt) {
                     .writeInt16(level_.ltonY(entityTransform.y));
             }
             if (!writer.takePacket()->empty()) {
-                driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_STATIC_DATA, true);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_STATIC_DATA, true);
+                writer.clearBuffer();
             }
         }
         {  //send leave entity IDs
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.leaveList) {
                 if (!writer.canWrite(2)) {
-                    driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_LEAVE, true);
+                    driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_LEAVE, true);
                     writer.clearBuffer();
                 }
                 writer.writeInt16(e);
             }
             if (!writer.takePacket()->empty()) {
-                driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_LEAVE, true);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_LEAVE, true);
+                writer.clearBuffer();
             }
         }
         {  //send dynamic data for all visible entities
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.dynamicList) {
                 if (!writer.canWrite(6)) {
-                    driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_DYNAMIC_DATA, false);
+                    driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_DYNAMIC_DATA, false);
                     writer.clearBuffer();
                 }
                 const auto& entityTransform = coord_.getComponent<Transform>(e);
                 writer.writeInt16(e).writeInt16(level_.ltonX(entityTransform.x)).writeInt16(level_.ltonY(entityTransform.y));
             }
             if (!writer.takePacket()->empty()) {
-                driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_DYNAMIC_DATA, false);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_DYNAMIC_DATA, false);
+                writer.clearBuffer();
             }
         }
         {  //handle entity size packet
@@ -91,7 +94,7 @@ void NetworkSyncSystem::update(float dt) {
             for (Entity e : aoi.dynamicList) {
                 if (sizeChangedBits_.test(e)) {
                     if (!writer.canWrite(3)) {
-                        driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_SIZE_CHANGE, true);
+                        driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_SIZE_CHANGE, true);
                         writer.clearBuffer();
                     }
                     const auto& size = coord_.getComponent<Size>(e);
@@ -99,7 +102,8 @@ void NetworkSyncSystem::update(float dt) {
                 }
             }
             if (!writer.takePacket()->empty()) {
-                driver.send(writer.takePacket(), peer, ClientTypes::PKT_ENTITY_SIZE_CHANGE, true);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_SIZE_CHANGE, true);
+                writer.clearBuffer();
             }
         }
     }

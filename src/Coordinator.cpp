@@ -10,5 +10,6 @@ Coordinator::Coordinator(){
     registerComponent<Boids>();
     registerComponent<NetworkPeer>();
     registerComponent<Size>();
+    registerComponent<ForceLoadChunk>();
     registerSystem(Signature{});  //empty to get to
 }

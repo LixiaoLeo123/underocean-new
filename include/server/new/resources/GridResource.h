@@ -24,8 +24,10 @@ struct GridResource {
         for(auto& c : cells_) c.entities.reserve(CELL_INIT_RESERVATION);
     }
     void clear() {
-        for(auto& c : cells_) c.entities.clear();
-        outOfBoundEntities.clear();
+        for(auto& c : cells_) {
+            c.entities.clear();
+            c.isAOI = false;
+        }
     }
     void insert(Entity e, float x, float y) {
         int c = static_cast<int>(x / cellWidth_);
@@ -36,6 +38,20 @@ struct GridResource {
         }
         else {
             outOfBoundEntities.push_back(e);
+        }
+    }
+    void setOnAOI(float x, float y) {   //set chunk include this pos isAOI = true (regarding GameData::ENTITY_SYNC_RADIUS)
+        int originC = static_cast<int>(x / cellWidth_);
+        int originR = static_cast<int>(y / cellHeight_);
+        for (int dc = -GameData::ENTITY_SYNC_RADIUS_X; dc <= GameData::ENTITY_SYNC_RADIUS_X; ++dc) {
+            for (int dr = -GameData::ENTITY_SYNC_RADIUS_Y; dr <= GameData::ENTITY_SYNC_RADIUS_Y; ++dr) {
+                int c = originC + dc;
+                int r = originR + dr;
+                if (c >= -1 && c <= cols_ && r >= -1 && r <= rows_) {
+                    int idx = (r + 1) * (cols_ + 2) + (c + 1);
+                    cells_[idx].isAOI = true;
+                }
+            }
         }
     }
     [[nodiscard]] bool cellExistAt(int r, int c) const {

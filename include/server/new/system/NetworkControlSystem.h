@@ -15,10 +15,10 @@ private:
     Signature signature_ {};
     Coordinator& coord_;  //to get entity and modify entity
     GameServer& server_;  //to get network information (PlayerData)
-    UVector mapSize_;
+    LevelBase& level_;    //to convert net pos and local pos
 public:
-    explicit NetworkControlSystem(Coordinator& coordinator, GameServer& server, UVector mapSize)  //mapSize to trans from netPos to realPos
-        :coord_(coordinator), server_(server), mapSize_(mapSize){
+    explicit NetworkControlSystem(Coordinator& coordinator, GameServer& server, LevelBase& level)  //mapSize to trans from netPos to realPos
+        :coord_(coordinator), server_(server), level_(level){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<NetworkPeer>()), true);
         coord_.registerSystem(signature_);
@@ -28,8 +28,8 @@ public:
         for (Entity e : networkEntities) {
             auto& trans = coord_.getComponent<Transform>(e);
             ENetPeer* peer = coord_.getComponent<NetworkPeer>(e).peer;
-            float worldX = mapSize_.x * static_cast<float>(server_.playerList_[peer].netX) / 65535.f;
-            float worldY = mapSize_.y * static_cast<float>(server_.playerList_[peer].netY) / 65535.f;
+            float worldX = level_.ntolX(server_.playerList_[peer].netX);
+            float worldY = level_.ntolY(server_.playerList_[peer].netY);
             trans.x = worldX;  //update pos
             trans.y = worldY;
         }

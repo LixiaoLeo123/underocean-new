@@ -11,7 +11,6 @@
 
 #include "common/Types.h"
 #include "common/net(depricate)/enet.h"
-#include "common/net(depricate)/PacketChannel.h"
 using namespace ClientTypes;
 class ClientNetworkDriver {
 public:
@@ -82,16 +81,19 @@ public:
                         break;
                     }
                     uint8_t typeByte = event.packet->data[0];
-                    if (typeByte >= PacketType::COUNT) break; //type bad
+                    if (typeByte >= PacketType::COUNT) { //type bad
+                        enet_packet_destroy(event.packet);
+                        break;
+                    }
                     auto packet = std::make_unique<Packet>(
                         event.packet->data + 1,  //remove type
                         event.packet->data + event.packet->dataLength);
                     packets_[typeByte].push(std::move(packet));
+                    enet_packet_destroy(event.packet);
                     break;
                 }
                 case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
                 case ENET_EVENT_TYPE_DISCONNECT:
-                    std::cout << 1;
                     event.peer->data = nullptr;
                     serverPeer_ = nullptr;
                     connected_ = false;
@@ -112,7 +114,7 @@ public:
         }
         std::unique_ptr<Packet> packet = std::move(packets_[packetType].front());
         packets_[packetType].pop();
-        return std::move(packet);
+        return packet;
     }
     [[nodiscard]] bool hasPacket(int packetType) const {
         if (packets_[packetType].empty()) return false;
@@ -124,7 +126,6 @@ private:
     ENetPeer* serverPeer_;
     ENetAddress address_{};
     sf::Clock reconnectTimer_;
-    sf::Clock heartbeatTimer_;
     bool connected_ { false };
     std::array<std::queue<std::unique_ptr<Packet>>, PacketType::COUNT> packets_;
     std::function<void()> onConnect_;

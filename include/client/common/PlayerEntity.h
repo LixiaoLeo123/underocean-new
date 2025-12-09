@@ -27,6 +27,10 @@ public:
     [[nodiscard]] sf::Vector2f getVelocity() const {
         return velocity_;
     }
+    void setBorder(float width, float height) {
+        mapWidth_ = width;
+        mapHeight_ = height;
+    }
 private:
     sf::Sprite sprite_;
     int totalFrames_{ -1 };   // decided by type
@@ -37,6 +41,26 @@ private:
     sf::Vector2f velocity_ {};
     float maxAcceleration_ { 0.f };
     float maxVelocity_ { 0.f };
+    float mapWidth_ { 0.f };
+    float mapHeight_ { 0.f };
+    void adjustPosInBorder() {   //keep in border
+        if (position_.x < 0.f) {
+            position_.x = 0.f;
+            if (velocity_.x < 0.f) velocity_.x = 0.f;
+        }
+        if (position_.y < 0.f) {
+            position_.y = 0.f;
+            if (velocity_.y < 0.f) velocity_.y = 0.f;
+        }
+        if (position_.x + frameWidth_ > mapWidth_) {
+            position_.x = mapWidth_ - static_cast<float>(frameWidth_);
+            if (velocity_.x > 0.f) velocity_.x = 0.f;
+        }
+        if (position_.y + frameHeight_ > mapHeight_) {
+            position_.y = mapHeight_ - static_cast<float>(frameHeight_);
+            if (velocity_.y > 0.f) velocity_.y = 0.f;
+        }
+    }
     static float getMaxAcceleration(EntityTypeID id) {
         switch (id) {
 #define X(name) case EntityTypeID::name: return ParamTable<EntityTypeID::name>::MAX_ACCELERATION;
@@ -62,7 +86,7 @@ inline void PlayerEntity::setType(EntityTypeID type) {
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
     sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
     maxAcceleration_ = getMaxAcceleration(type);
-    maxVelocity_ = getMaxVelocity(type);
+    maxVelocity_ = getMaxVelocity(type) * 2;
 }
 inline void PlayerEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
@@ -77,6 +101,7 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     velocity_ += Physics::clampVec(rawAcc, maxAcceleration_) * dt;
     velocity_ = Physics::clampVec(velocity_, maxVelocity_);
     position_ += velocity_ * dt;
+    adjustPosInBorder();
     sprite_.setPosition(position_);
     //TODO: add border check according to map size
     updateAnim(dt);

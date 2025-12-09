@@ -16,7 +16,7 @@ public:
     : clientPos_(0.f, 0.f), prevNetPos_(0.f,0.f), netPos_(0.f,0.f),
       velocity_(0.f,0.f),
       interpTimer_(0.f),
-      hasNet_(false), hasPrevNet_(false), SERVER_DT_(1.f / GameData::SERVER_TPS) {}
+      hasNet_(false), hasPrevNet_(false), SERVER_DT_(1.f / static_cast<float>(GameData::SERVER_TPS)) {}
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
     }
@@ -77,12 +77,14 @@ private:
     sf::Vector2f velocity_;      // derived from consecutive authoritative positions
     float SERVER_DT_;   // server update interval
     float interpTimer_;    // time since last authoritative update
+    float animTimer{ 0.f };
     bool hasNet_;
     bool hasPrevNet_;
     int totalFrames_{ -1 };   // decided by type
     float frameInterval_{ -1.f }; // time per frame
-    int frameWidth_{ -1 };   // decided by type
-    int frameHeight_{ -1 };  // decided by type
+    unsigned frameWidth_{ 0u };   // decided by type
+    unsigned frameHeight_{ 0u };  // decided by type
+    constexpr static float ANGLE_UPDATE_SPEED2_THRESHOLD{ 0.3f };
 };
 inline void NetworkEntity::setType(EntityTypeID type) {
     sprite_.setTexture(ResourceManager::getTexture(getTexturePath(type)));
@@ -114,7 +116,8 @@ inline void NetworkEntity::updatePos(float dt) {
     if (interpTimer_ <= SERVER_DT_) {
         float t = interpTimer_ / SERVER_DT_;
         // smoothstep easing
-        float s = t * t * (3.f - 2.f * t);   //smooth
+        //float s = t * t * (3.f - 2.f * t);   //smooth
+        float s = t;  //linear
         clientPos_ = lerp(prevNetPos_, netPos_, s);
         sprite_.setPosition(clientPos_);
     } else {
@@ -125,14 +128,17 @@ inline void NetworkEntity::updatePos(float dt) {
     }
 }
 inline void NetworkEntity::updateAngle() {
-    if (velocity_.x == 0.f && velocity_.y == 0.f) return; // no movement, no rotation
+    if (velocity_.x * velocity_.x + velocity_.y * velocity_.y < ANGLE_UPDATE_SPEED2_THRESHOLD) return; // no movement, no rotation
     float angle = std::atan2(velocity_.y, velocity_.x) * 180.f / 3.14159265f;
-    sprite_.setRotation(angle);
+    float current = sprite_.getRotation();
+    float delta = angle - current;
+    while (delta > 180.f) delta -= 360.f;
+    while (delta < -180.f) delta += 360.f;
+    constexpr float alpha = 0.1f;  //less is smoother
+    sprite_.setRotation(current + delta * alpha);
 }
 inline void NetworkEntity::updateAnim(float dt) {
     // update the frame of sprite texture
-    // example:
-    static float animTimer = 0.f;
     animTimer += dt;
     int frame = static_cast<int>(animTimer / frameInterval_) % totalFrames_;
     sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
