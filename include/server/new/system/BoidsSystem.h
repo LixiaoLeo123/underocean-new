@@ -56,7 +56,7 @@ private:
         UVector boidsAcc = cohesion * ParamTable<ID>::COHESION_WEIGHT +
         separation * ParamTable<ID>::SEPARATION_WEIGHT +
         alignment * ParamTable<ID>::ALIGNMENT_WEIGHT;
-        coord_.getComponent<Acceleration>(e) = boidsAcc;
+        coord_.getComponent<Force>(e) = boidsAcc;
     }
 public:
     explicit BoidsSystem(Coordinator &coordinator)
@@ -65,7 +65,7 @@ public:
             signature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
             signature_.set(Coordinator::getComponentTypeID<Boids>(), true);
             signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
-            signature_.set(Coordinator::getComponentTypeID<Acceleration>(), true);
+            signature_.set(Coordinator::getComponentTypeID<Force>(), true);
         }
         {
             requiredSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);

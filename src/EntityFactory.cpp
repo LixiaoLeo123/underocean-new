@@ -11,9 +11,8 @@ void EntityFactory::initialize() {
                 Random::randFloat(spawnAreaFrom_.y, spawnAreaTo_.y)};
             coord_.addComponent(newEntity, transform);
         }
-        {  //transform
-            Acceleration acceleration{};
-            coord_.addComponent(newEntity, acceleration);
+        {  //mass
+            coord_.addComponent<Mass>(newEntity, {ParamTable<EntityTypeID::SMALL_YELLOW>::MASS});
         }
         {  //entity type
             EntityType entityType = {EntityTypeID::SMALL_YELLOW};

@@ -117,7 +117,12 @@ struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MAX_VELOCITY = 10.f;
     static constexpr float MAX_ACCELERATION = 40.f;
+    static constexpr float MASS = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 6.f;
+    static constexpr float SIZE_STEP = 2.f;  //size increase step
+    static constexpr float HP_BASE = 5.f;  //hp proportional to size
+    static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
     static constexpr int PERCEPTION_DIST = 3;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 100.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -126,6 +131,7 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SEPARATION_WEIGHT = 1000.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
+
 };
 struct EntitySizeChangeEvent {
     Entity entity;

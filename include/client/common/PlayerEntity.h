@@ -52,12 +52,12 @@ private:
             position_.y = 0.f;
             if (velocity_.y < 0.f) velocity_.y = 0.f;
         }
-        if (position_.x + frameWidth_ > mapWidth_) {
-            position_.x = mapWidth_ - static_cast<float>(frameWidth_);
+        if (position_.x > mapWidth_) {
+            position_.x = mapWidth_;
             if (velocity_.x > 0.f) velocity_.x = 0.f;
         }
-        if (position_.y + frameHeight_ > mapHeight_) {
-            position_.y = mapHeight_ - static_cast<float>(frameHeight_);
+        if (position_.y > mapHeight_) {
+            position_.y = mapHeight_;
             if (velocity_.y > 0.f) velocity_.y = 0.f;
         }
     }
@@ -103,14 +103,17 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     position_ += velocity_ * dt;
     adjustPosInBorder();
     sprite_.setPosition(position_);
-    //TODO: add border check according to map size
     updateAnim(dt);
     updateAngle();
 }
 inline void PlayerEntity::updateAngle() {
-    if (velocity_.x == 0.f && velocity_.y == 0.f) return; // no movement, no rotation
     float angle = std::atan2(velocity_.y, velocity_.x) * 180.f / 3.14159265f;
-    sprite_.setRotation(angle);
+    float current = sprite_.getRotation();
+    float delta = angle - current;
+    while (delta > 180.f) delta -= 360.f;
+    while (delta < -180.f) delta += 360.f;
+    constexpr float alpha = 0.1f;  //less is smoother
+    sprite_.setRotation(current + delta * alpha);
 }
 inline void PlayerEntity::updateAnim(float dt) {
     // update the frame of sprite texture

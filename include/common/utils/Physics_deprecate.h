@@ -7,7 +7,7 @@
 #include "server/game/OldEntity.h"
 #include <functional>
 
-#include "server/core/CollisionBox.h"
+#include "server/core(deprecate)/CollisionBox.h"
 
 class Physics_deprecate {
 public:

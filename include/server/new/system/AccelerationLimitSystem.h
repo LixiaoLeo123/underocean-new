@@ -18,7 +18,7 @@ public:
     explicit AccelerationLimitSystem(Coordinator& coordinator)
         :coord(coordinator){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<MaxAcceleration>()), true);
-        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Acceleration>()), true);
+        signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Force>()), true);
         //coord.registerSystem(signature_);
     }
     void update(float dt) override {
@@ -28,7 +28,7 @@ public:
             for (Entity entity : cell.entities) {
                 if (!coord.hasSignature(entity, signature_)) continue;
                 float maxAcceleration = coord.getComponent<MaxAcceleration>(entity).maxAcceleration;
-                auto& acc = coord.getComponent<Acceleration>(entity);
+                auto& acc = coord.getComponent<Force>(entity);
                 float acc2 = acc.ax * acc.ax + acc.ay * acc.ay;
                 if (acc2 > maxAcceleration * maxAcceleration && acc2 > 0.0f) {
                     float ratio = maxAcceleration / std::sqrt(acc2);

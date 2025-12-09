@@ -6,7 +6,7 @@
 #include "../include/client/scenes/startmenu/StartMenu.h"
 #include "client/ui/widgets/TextButton.h"
 #include "client/ui/widgets/labels/TextLabel.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
     :LazyPanelScene(WIDTH, HEIGHT), title_(title) {

@@ -6,7 +6,7 @@
 #define UNDEROCEAN_DBITSET_H
 #include "common/Types.h"
 constexpr size_t WORD_COUNT = (MAX_ENTITIES + 63) / 64; // 1024
-//NOTE: only server for this game (Using MAX_ENTITIES)
+//NOTE: only serve for this game (Using MAX_ENTITIES)
 struct DBitset {  //faster, can iterate by 64-bit chunk
     uint64_t words[WORD_COUNT] = {};
     void set(Entity id) {

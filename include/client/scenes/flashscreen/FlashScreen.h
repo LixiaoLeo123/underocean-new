@@ -11,7 +11,7 @@
 #include "client/ui/layouts/LazyLayout.h"
 #include "client/ui/widgets/Panel.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 class SmoothTextLabel;
 

@@ -3,7 +3,7 @@
 //
 
 
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 #include <cstring>
 #include <fstream>
 #include <iosfwd>

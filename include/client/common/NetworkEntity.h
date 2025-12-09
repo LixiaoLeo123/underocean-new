@@ -8,7 +8,7 @@
 
 #include "ResourceManager.h"
 #include "common/Types.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 class NetworkEntity {
 public:

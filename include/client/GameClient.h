@@ -8,7 +8,7 @@
 
 #include "common/InputManager.h"
 #include "scenes/RootScene.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 class GameClient {
 public:
@@ -16,6 +16,7 @@ public:
     void run() {
         sf::RenderWindow window(sf::VideoMode(1920, 1080), "Underocean", sf::Style::Default);
         window.setFramerateLimit(GameData::FPS);
+        window.setVerticalSyncEnabled(true);
         RootScene sceneManager(window);
         sf::Clock clock;
         float MAX_FRAME_TIME = 4.0f / static_cast<float>(GameData::TPS);

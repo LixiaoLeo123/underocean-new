@@ -1,7 +1,7 @@
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 #include "client/common/ResourceManager.h"
 #include "client/scenes/levelscenes/LevelScene1.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
 #define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
 LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, std::string ip, int port)  //from start menu

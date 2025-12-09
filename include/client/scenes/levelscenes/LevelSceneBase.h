@@ -98,7 +98,7 @@ inline void LevelSceneBase::update(float dt) {
         playerRawAcc = accDisRatio_ * dir;
     }
     else {
-        playerRawAcc = -10.f * dt * player.getVelocity();
+        playerRawAcc = -2.f * player.getVelocity();
     }
     player.update(dt, playerRawAcc);
     //move view toward player position

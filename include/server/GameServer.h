@@ -14,7 +14,7 @@
 #include "common/Types.h"
 #include "common/net(depricate)/PacketReader.h"
 #include "common/net(depricate)/PacketWriter.h"
-#include "core/GameData.h"
+#include "core(deprecate)/GameData.h"
 #include "new/ILevel.h"
 class PacketWriter;
 using namespace ServerTypes;

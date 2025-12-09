@@ -2,7 +2,7 @@
 #include "client/GameClient.h"
 #include "common/net(depricate)/enet.h"
 #include "server/GameServer.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 //#define SERVER_ENV
 void startNetServer();
 int main() {
@@ -16,6 +16,7 @@ int main() {
     GameClient client;
     client.run();
 #endif
+    enet_deinitialize();
 }
 void startNetServer() {
     std::thread serverThread([]() {

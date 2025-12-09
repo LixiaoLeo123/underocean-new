@@ -10,7 +10,7 @@
 #include "client/ui/layouts/LazyLayout.h"
 #include "client/ui/widgets/TextButton.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSmooth)   //only logic init! originView for setBoundsWithoutAnim
     :font0_(ResourceManager::getFont("fonts/font0.otf")),

@@ -17,7 +17,8 @@ public:
     explicit AccelerationSystem(Coordinator& coordinator)
         :coord_(coordinator){
         signature_.set(Coordinator::getComponentTypeID<Velocity>(), true);
-        signature_.set(Coordinator::getComponentTypeID<Acceleration>(), true);
+        signature_.set(Coordinator::getComponentTypeID<Force>(), true);
+        signature_.set(Coordinator::getComponentTypeID<Mass>(), true);  //mass should also exist to calculate acceleration
         //coord_.registerSystem(signature_);
     }
 
@@ -27,8 +28,9 @@ public:
             if (!cell.isAOI) continue;
             for (Entity entity : cell.entities) {
                 if (!coord_.hasSignature(entity, signature_)) continue;
+                assert(coord_.getComponent<Mass>(entity).mass != 0.f && "Mass component's mass should not be zero");
                 coord_.getComponent<Velocity>(entity) +=
-                    static_cast<UVector>(coord_.getComponent<Acceleration>(entity)) * dt;
+                    static_cast<UVector>(coord_.getComponent<Force>(entity)) / coord_.getComponent<Mass>(entity).mass * dt;
             }
         }
     }

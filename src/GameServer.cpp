@@ -4,7 +4,7 @@
 #include <ostream>
 #include <stdexcept>
 
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
 #include "server/new/levels/Level1.h"
 

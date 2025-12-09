@@ -3,7 +3,7 @@
 Coordinator::Coordinator(){
     registerComponent<Transform>();
     registerComponent<Velocity>();
-    registerComponent<Acceleration>();
+    registerComponent<Force>();
     registerComponent<MaxVelocity>();
     registerComponent<MaxAcceleration>();
     registerComponent<EntityType>();
@@ -11,5 +11,6 @@ Coordinator::Coordinator(){
     registerComponent<NetworkPeer>();
     registerComponent<Size>();
     registerComponent<ForceLoadChunk>();
+
     registerSystem(Signature{});  //empty to get to
 }

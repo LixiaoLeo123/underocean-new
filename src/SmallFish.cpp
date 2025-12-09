@@ -6,7 +6,7 @@
 #include <array>
 
 #include "common/utils/Physics_deprecate.h"
-#include "server/core/GameData.h"
+#include "server/core(deprecate)/GameData.h"
 
 const std::array<SmallFish::Params, static_cast<size_t>(SmallFishType::COUNT)>& SmallFish::getParamsTable() {
     static const std::array<Params, static_cast<size_t>(SmallFishType::COUNT)> table = { {
