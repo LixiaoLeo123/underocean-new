@@ -92,6 +92,17 @@ void LevelSelectMenu::reloadUI() {
         }
     }
 }
+inline void LevelSelectMenu::handleFinishLoginPacket() {
+    if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
+        if (packet->size() != 8) return;
+        PacketReader reader(std::move(*packet));
+        playerAttributes_.maxHP = ntolHP16(reader.nextUInt16());
+        playerAttributes_.maxFP = ntolFP(reader.nextUInt16());
+        playerAttributes_.maxVec = ntolVec(reader.nextUInt16());
+        playerAttributes_.maxAcc = ntolAcc(reader.nextUInt16());
+        statusIndicator_.setStateConnected();
+    }
+}
 void LevelSelectMenu::update(float dt) {
     if (shouldReloadUI) {
         reloadUI();
@@ -102,9 +113,7 @@ void LevelSelectMenu::update(float dt) {
     title_->updateTotal(dt);
     statusIndicator_.update(dt);
     networkDriver_->pollPacket();   //packet handle start (may call on(dis)connect)
-    if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
-        statusIndicator_.setStateConnected();
-    }
+    handleFinishLoginPacket();
 }
 void LevelSelectMenu::render(sf::RenderWindow &window) {
     if (advanced) {
@@ -156,7 +165,7 @@ void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum suppose
         shouldReloadUI = true;
         SceneSwitchRequest request = {
             SceneSwitchRequest::Push,
-            std::make_unique<LevelScene1>(networkDriver_),
+            std::make_unique<LevelScene1>(networkDriver_, playerAttributes_),
             0,
             0
         };

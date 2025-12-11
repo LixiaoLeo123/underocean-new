@@ -28,6 +28,8 @@ using Signature = std::bitset<MAX_COMPONENTS>;
 constexpr float ENTITY_MAX_SIZE = 200.f;
 constexpr float ENTITY_MAX_HP = 32768.f;
 constexpr float ENTITY_MAX_FP = 32768.f;
+constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
+constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
 inline std::uint8_t ltonSize(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
@@ -51,6 +53,18 @@ inline std::uint16_t ltonHP8(float hp) {    //local hp to net hp
 }
 inline float ntolHP8(std::uint16_t netHP) {    //net hp to local hp, 8 bits for Entity
     return static_cast<float>(netHP) / 255.f * ENTITY_MAX_HP;
+}
+inline std::uint16_t ltonVec(float vec) {    //local fp to net fp
+    return static_cast<std::uint16_t>(std::round(vec / PLAYER_MAX_MAX_VEC * 65535.f));
+}
+inline float ntolVec(std::uint16_t netVec) {   //net fp to local fp
+    return static_cast<float>(netVec) / 65535.f * PLAYER_MAX_MAX_VEC;
+}
+inline std::uint16_t ltonAcc(float acc) {    //local fp to net fp
+    return static_cast<std::uint16_t>(std::round(acc / PLAYER_MAX_MAX_ACC * 65535.f));
+}
+inline float ntolAcc(std::uint16_t netAcc) {   //net fp to local fp
+    return static_cast<float>(netAcc) / 65535.f * PLAYER_MAX_MAX_ACC;
 }
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
@@ -88,7 +102,7 @@ namespace ClientTypes {  //packet that client handle
         // char[]
         PKT_PLAYER_STATE_UPDATE = 5, //reliable, send when hp or fp change
         //1HP 1FP = 2byte
-        PKG_FINISH_LOGIN = 6, //reliable, 2 byte for max HP, 2 byte for max FP, total 4 bytes
+        PKG_FINISH_LOGIN = 6, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
         COUNT
     };
 }
@@ -123,6 +137,12 @@ struct PlayerData {  //related to GameServer::handleLoginPacket(), used by level
     float initFP {0.f};
     float size {0.f};  //actually ENTITY_MAX_SIZE / netSize
 };
+struct ClientCommonPlayerAttributes {
+    float maxHP{0.f};
+    float maxFP{0.f};
+    float maxVec{0.f};
+    float maxAcc{0.f};
+};
 // struct LevelChangeRequest {
 //     ENetPeer* peer;
 //     std::uint8_t fromLevel;
@@ -147,10 +167,10 @@ template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MAX_VELOCITY = 7.f;
-    static constexpr float MAX_ACCELERATION = 70.f;
-    static constexpr float MASS = 1.f;  //mass proportional to size^2
+    static constexpr float MAX_FORCE = 70.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 4.2f;  //remember changing GameData init
-    static constexpr float SIZE_STEP = 1.4f;  //size increase step
+    static constexpr float SIZE_STEP = 0.7f;  //size increase step
     static constexpr float HP_BASE = 5.f;  //hp proportional to size
     static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
@@ -176,6 +196,10 @@ struct PlayerLeaveEvent {
 };
 struct PlayerJoinEvent {
     PlayerData& playerData;
+};
+struct AttributedEntityInitEvent {
+    Entity e;
+    bool shouldAddFP;
 };
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;

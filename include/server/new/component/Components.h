@@ -57,6 +57,7 @@ struct HP {
 struct FP {  //food points
     float fp { 0.f };  //same
     float maxFp { 0.f };
+    float fpDecRate { 0.f };
 };
 struct ForceLoadChunk {};   //enable aoi in GridBuildSystem
 struct NetSyncComp {  //NetworkSyncSystem

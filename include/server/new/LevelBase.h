@@ -14,7 +14,7 @@
 class LevelBase : public ILevel {   //impl basic ecs, abstract
 public:
     explicit LevelBase(GameServer& server) : entityFactory_(coordinator_), server_(server) {
-        entityFactory_.initialize();
+        entityFactory_.initialize(eventBus_);
     };
     virtual void initialize() = 0;
     void update(float dt) override {

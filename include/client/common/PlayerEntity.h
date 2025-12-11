@@ -8,12 +8,15 @@
 
 #include "ResourceManager.h"
 #include "common/Types.h"
+#include "common/utils/Physics.h"
 #define PLAYER_ENTITY_TYPES \
 X(SMALL_YELLOW)
 class PlayerEntity {
 public:
     void setType(EntityTypeID type);
     void setSize(float size);
+    void setMaxVec(float maxVec) { maxVelocity_ = maxVec; }
+    void setMaxAcc(float maxAcc) { maxAcceleration_ = maxAcc; }
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
     }
@@ -68,7 +71,7 @@ private:
     }
     static float getMaxAcceleration(EntityTypeID id) {
         switch (id) {
-#define X(name) case EntityTypeID::name: return ParamTable<EntityTypeID::name>::MAX_ACCELERATION;
+#define X(name) case EntityTypeID::name: return ParamTable<EntityTypeID::name>::MAX_FORCE;
             PLAYER_ENTITY_TYPES
             default: return 0.f;
 #undef X
@@ -90,8 +93,6 @@ inline void PlayerEntity::setType(EntityTypeID type) {
     frameHeight_ = sprite_.getTexture()->getSize().y;
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
     sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
-    maxAcceleration_ = getMaxAcceleration(type);
-    maxVelocity_ = getMaxVelocity(type) * 2;
 }
 inline void PlayerEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
@@ -101,7 +102,7 @@ inline void PlayerEntity::setSize(float size) {
 inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // when mouse click, move the player to that direction(velocity proportional to distance)
     // player entity should have acceleration and velocity, smoothly move to target position
-    // max acceleration and max velocity can be got by ParamTable<EntityTypeID>::MAX_ACCELERATION/VELOCITY
+    // max acceleration and max velocity can be got by ParamTable<EntityTypeID>::MAX_FORCE/VELOCITY
     // and camera should follow the player smoothly, using GameData::CAMERA_ALPHA
     velocity_ += Physics::clampVec(rawAcc, maxAcceleration_) * dt;
     velocity_ = Physics::clampVec(velocity_, maxVelocity_);

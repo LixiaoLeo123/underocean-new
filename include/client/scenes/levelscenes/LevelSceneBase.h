@@ -20,10 +20,12 @@
 
 class LevelSceneBase : public IScene{
 public:
-    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver)
-        :driver_(driver) {
+    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes)
+        :driver_(driver), playerAttributes_(playerAttributes) {
         player.setType(static_cast<EntityTypeID>(GameData::playerType));
         player.setSize(GameData::playerSize[GameData::playerType]);
+        player.setMaxVec(playerAttributes.maxVec);
+        player.setMaxAcc(playerAttributes.maxAcc);
         // get max Acc when mouse is at the left or right side of the view
         accDisRatio_ = player.getMaxAcceleration() * 2 / VIEW_WIDTH;
         // send level change packet
@@ -46,6 +48,7 @@ protected:
     sf::Sprite background_;
     sf::View view_ {};
     bool viewInit_ { false };  //not init
+    ClientCommonPlayerAttributes& playerAttributes_;
 private:
     constexpr static float VIEW_WIDTH = 90.f;
     constexpr static float VIEW_HEIGHT = 50.f;

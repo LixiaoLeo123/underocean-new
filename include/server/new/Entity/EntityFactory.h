@@ -9,6 +9,8 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "server/new/Coordinator.h"
+class EventBus;
+
 class EntityFactory {
 private:
     struct WeightedEntry {
@@ -36,7 +38,7 @@ public:
         :coord_(coordinator) {
         spawnFunctions_.reserve(static_cast<size_t>(EntityTypeID::COUNT));
     };
-    void initialize();   //add spawn functions
+    void initialize(EventBus& eventBus);   //add spawn functions
     void setSpawnArea(sf::Vector2f from, sf::Vector2f to) {
         spawnAreaFrom_ = from;
         spawnAreaTo_ = to;

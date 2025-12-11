@@ -6,12 +6,8 @@
 #define UNDEROCEAN_LEVEL1_H
 #include "server/new/Coordinator.h"
 #include "server/new/LevelBase.h"
-#include "server/new/resources/plots/PlotContext1.h"
 #include "server/new/system/AccelerationSystem.h"
-#include "server/new/system/BoidsSystem.h"
-#include "server/new/system/BoundaryCullingSystem.h"
 #include "server/new/system/EntityGenerationSystem.h"
-#include "server/new/system/GridBuildSystem.h"
 #include "server/new/system/NetworkControlSystem.h"
 #include "server/new/system/NetworkSyncSystem.h"
 

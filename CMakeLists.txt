@@ -34,6 +34,8 @@ add_executable(Underocean
         src/NetworkSyncSystem.cpp
         src/Level1.cpp
         src/LevelSceneBase.cpp
+        src/PlayerStatus.cpp
+        src/PlayerStatus.cpp
 )
 
 # 添加头文件目录

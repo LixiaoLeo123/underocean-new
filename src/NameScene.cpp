@@ -129,6 +129,7 @@ void NameScene::update(float dt) {
             }
             static constexpr float viewAreaDecreaseRate = 675000.f;
             static constexpr float viewCenterMovingRate = 0.37f;
+            static constexpr float viewRotatingRate = 2.5f;
             viewArea_ -= viewAreaDecreaseRate * dt;
             sf::Vector2f size = view_.getSize();
             float currentArea = size.x * size.y;
@@ -138,6 +139,7 @@ void NameScene::update(float dt) {
             float newWidth = ratio * newHeight;
             view_.setSize(newWidth, newHeight);
             view_.move(viewMovingDirection_ * viewCenterMovingRate * dt);
+            view_.rotate(viewRotatingRate * dt);
             cachedId_->addShakeIntensity(dt * 0.3f);
             break;
         }

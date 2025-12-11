@@ -3,12 +3,18 @@
 //
 #include "server/new/levels/Level1.h"
 
+#include "server/new/resources/plots/PlotContext1.h"
 #include "server/new/system/AccelerationLimitSystem.h"
 #include "server/new/system/AccelerationSystem.h"
+#include "server/new/system/BoidsSystem.h"
+#include "server/new/system/BoundaryCullingSystem.h"
+#include "server/new/system/DerivedAttributeSystem.h"
+#include "server/new/system/GridBuildSystem.h"
 #include "server/new/system/VelocityLimitSystem.h"
 
 void Level1::initialize() {
     coordinator_.emplaceContext<GridResource>();
+    emplaceSystem<DerivedAttributeSystem>(coordinator_, eventBus_);
     emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this);
     emplaceSystem<GridBuildSystem>(coordinator_);
     emplaceSystem<BoidsSystem>(coordinator_);

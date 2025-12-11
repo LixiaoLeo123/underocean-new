@@ -122,12 +122,13 @@ public:
         availableIds.push(entity);
     }
     template<typename T>
-    void addComponent(Entity entity, T component) {  //must call notifyEntityChanged manually!!
+    void addComponent(Entity entity, T component) {  //must call notifyEntityChanged manually
+        assert(!hasComponent<T>(entity) && "Component has registered!");
         getComponentArray<T>()->InsertData(entity, component);
         signatures[entity].set(getComponentTypeID<T>(), true);
     }
     template<typename T>
-    void removeComponent(Entity entity) {  //must call notifyEntityChanged manually!!
+    void removeComponent(Entity entity) {  //must call notifyEntityChanged manually
         getComponentArray<T>()->RemoveData(entity);
         signatures[entity].set(getComponentTypeID<T>(), false);
     }

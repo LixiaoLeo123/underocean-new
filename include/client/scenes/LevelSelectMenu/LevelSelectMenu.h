@@ -12,6 +12,8 @@
 #include "common/net(depricate)/PacketWriter.h"
 #include "common/network/ClientNetworkDriver.h"
 class LevelSelectMenu : public LazyPanelScene {  //network start, real client
+private:
+    ClientCommonPlayerAttributes  playerAttributes_ {};
 public:
     LevelSelectMenu(const std::shared_ptr<SmoothTextLabel>& title, std::string ip, int port);
     void update(float dt) override;
@@ -28,6 +30,7 @@ public:
     void handleDisconnect();
     void handleLevelButtonClick(int levelNum);   //callback
     void sendLoginPacket();
+    void handleFinishLoginPacket();
 private:
     std::shared_ptr<SmoothTextLabel> title_;
     sf::Sprite background_;

@@ -1,9 +1,10 @@
 #include "server/new/Entity/EntityFactory.h"
 
 #include "common/utils/Random.h"
+#include "server/new/EventBus.h"
 #include "server/new/component/Components.h"
 
-void EntityFactory::initialize() {
+void EntityFactory::initialize(EventBus& eventBus) {
     registerSpawner(EntityTypeID::SMALL_YELLOW, [&](PlayerData* playerData)->Entity {
         Entity newEntity = coord_.createEntity();
         {  //transform
@@ -14,24 +15,20 @@ void EntityFactory::initialize() {
         {  //Force
             coord_.addComponent(newEntity, Force{});
         }
-        {  //mass
-            coord_.addComponent<Mass>(newEntity, {ParamTable<EntityTypeID::SMALL_YELLOW>::MASS});
+        {  //max velocity (can change)
+            MaxVelocity maxVelocity = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY};
+            coord_.addComponent(newEntity, maxVelocity);
         }
         {  //random velocity
             sf::Vector2f vecVelocity = Random::randUnitVector() * Random::randFloat(0.f,
                                            ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
             coord_.addComponent(newEntity, Velocity{vecVelocity.x, vecVelocity.y});
         }
-        {  //max velocity (can change)
-            MaxVelocity maxVelocity = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY};
-            coord_.addComponent(newEntity, maxVelocity);
-        }
-        {  //max acceleration
-            MaxAcceleration maxAcceleration = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_ACCELERATION};
-            coord_.addComponent(newEntity, maxAcceleration);
-        }
         {  //size
-            Size size = {ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE};
+            Size size = {
+                ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE
+                + ParamTable<EntityTypeID::SMALL_YELLOW>::SIZE_STEP * static_cast<float>(Random::randInt(0, 1))
+            };
             coord_.addComponent(newEntity, size);
         }
         {  //entity type
@@ -43,12 +40,12 @@ void EntityFactory::initialize() {
         });
         if (playerData) {
             coord_.addComponent(newEntity, ForceLoadChunk{});
-            coord_.getComponent<Velocity>(newEntity) = static_cast<UVector>(coord_.getComponent<Velocity>(newEntity)) * 2;
             coord_.addComponent(newEntity, NetworkPeer{playerData->peer});
         }
         else {
             coord_.addComponent(newEntity, Boids{});
         }
+        eventBus.publish<AttributedEntityInitEvent>({newEntity, static_cast<bool>(playerData)});
         coord_.notifyEntityChanged(newEntity);
         return newEntity;
     });

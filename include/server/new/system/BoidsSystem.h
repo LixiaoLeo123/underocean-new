@@ -4,8 +4,6 @@
 
 #ifndef UNDEROCEAN_BOIDSSYSTEM_H
 #define UNDEROCEAN_BOIDSSYSTEM_H
-#include <SFML/System/Vector2.hpp>
-
 #include "ISystem.h"
 #include "common/utils/Physics.h"
 #include "server/new/Coordinator.h"

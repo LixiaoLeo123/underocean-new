@@ -9,11 +9,9 @@
 
 class LevelScene1 : public LevelSceneBase {
 public:
-    explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver)
-        :LevelSceneBase(driver) {
+    explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes)
+        :LevelSceneBase(driver, playerAttributes) {
         player.setBorder(MAP_SIZE.x, MAP_SIZE.y);
-        player.setType(static_cast<EntityTypeID>(GameData::playerType));
-        player.setSize(GameData::playerSize[GameData::playerType]);
         // if (GameData::firstPlay) {
         //     player.setPos(-1000.f, -1000.f);  //out of map to play animation
         //     state_ = State::ANIMATION;

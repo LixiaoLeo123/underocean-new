@@ -7,6 +7,7 @@
 #include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
 #include "server/new/levels/Level1.h"
+#include "server/new/system/DerivedAttributeSystem.h"
 
 GameServer::GameServer(){
     if (!networkDriver_.listen(GameData::SERVER_PORT)) {
@@ -27,20 +28,32 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
         //deserialize start
         it->second.peer = peer;
         std::copy_n(packet.begin(), 16, it->second.playerId);  //playerId
+        PacketReader reader(std::move(packet));
+        reader.jumpBytes(16);
         {  //type
             std::uint8_t temp;
-            std::copy_n(packet.begin() + 16, 1, &temp);
+            temp = reader.nextUInt8();
             if (temp >= static_cast<std::uint8_t>(EntityTypeID::COUNT)) continue;  //wrong packet
             it->second.type = static_cast<EntityTypeID>(temp);
         }
-        std::uint8_t tempNetSize;
-        std::copy_n(packet.begin() + 17, 1, &tempNetSize);
-        it->second.size = ntolSize(tempNetSize);
-        std::copy_n(packet.begin() + 18, 2, &it->second.initHP);
-        std::copy_n(packet.begin() + 20, 2, &it->second.initFP);
+        {
+            // std::uint8_t tempNetSize;
+            // std::uint16_t tempNetInitHP;
+            // std::uint16_t tempNetInitFP;
+            // std::copy_n(packet.begin() + 17, 1, &tempNetSize);
+            // std::copy_n(packet.begin() + 18, 1, &tempNetInitHP);
+            // std::copy_n(packet.begin() + 20, 1, &tempNetInitFP);
+            it->second.size = ntolSize(reader.nextUInt8());
+            it->second.initHP = ntolHP16(reader.nextUInt16());
+            it->second.initFP = ntolFP(reader.nextUInt16());
+        }
         //and...
-        writer_.write
-        networkDriver_.send(nullptr, peer, 0, ClientTypes::PacketType::PKG_FINISH_LOGIN, true);
+        writer_.writeInt16(ltonHP16(DerivedAttributeSystem::calcMaxHP(it->second.type, it->second.size)))
+            .writeInt16(ltonFP(DerivedAttributeSystem::calcMaxFP(it->second.type, it->second.size)))
+            .writeInt16(ltonVec(DerivedAttributeSystem::calcMaxVec(it->second.type)))
+            .writeInt16(ltonAcc(DerivedAttributeSystem::calcMaxAcc(it->second.type, it->second.size)));
+        networkDriver_.send(writer_.takePacket(), peer, 0, ClientTypes::PacketType::PKG_FINISH_LOGIN, true);
+        writer_.clearBuffer();
         it->second.hasLogin = true;   //finish
         broadcast("&e" + std::string(it->second.playerId).append(" joined the game"));
     }
