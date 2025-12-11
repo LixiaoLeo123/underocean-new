@@ -23,8 +23,9 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //already leave
         Packet& packet = namedPacket->packet;
-        if (packet.size() != 18) continue;    //size change here
+        if (packet.size() != 22) continue;    //size change here
         //deserialize start
+        it->second.peer = peer;
         std::copy_n(packet.begin(), 16, it->second.playerId);  //playerId
         {  //type
             std::uint8_t temp;
@@ -32,8 +33,14 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
             if (temp >= static_cast<std::uint8_t>(EntityTypeID::COUNT)) continue;  //wrong packet
             it->second.type = static_cast<EntityTypeID>(temp);
         }
-        std::copy_n(packet.begin() + 17, 1, &it->second.netSize);
+        std::uint8_t tempNetSize;
+        std::copy_n(packet.begin() + 17, 1, &tempNetSize);
+        it->second.size = ntolSize(tempNetSize);
+        std::copy_n(packet.begin() + 18, 2, &it->second.initHP);
+        std::copy_n(packet.begin() + 20, 2, &it->second.initFP);
         //and...
+        writer_.write
+        networkDriver_.send(nullptr, peer, 0, ClientTypes::PacketType::PKG_FINISH_LOGIN, true);
         it->second.hasLogin = true;   //finish
         broadcast("&e" + std::string(it->second.playerId).append(" joined the game"));
     }

@@ -19,12 +19,12 @@ private:
     Coordinator& coord_;
     sf::Vector2f spawnAreaFrom_ {};
     sf::Vector2f spawnAreaTo_ {};   //spawn area
-    std::vector<std::function<Entity(bool isPlayer)>> spawnFunctions_;  //spawn and get Entity value
+    std::vector<std::function<Entity(PlayerData* playerData)>> spawnFunctions_;  //spawn and get Entity value, playerData is nullptr for non-player
     std::vector<WeightedEntry> weightedEntries_ {};
     std::discrete_distribution<size_t> dist;
     // bool spawnFunctionsEmpty{ true };  // prevent spawnRandom before initialize
     bool distDirty_{ false };  //see spawnRandom
-    void registerSpawner(EntityTypeID id, std::function<Entity(bool isPlayer)> func) {        //spawnFunctions_.push_back
+    void registerSpawner(EntityTypeID id, std::function<Entity(PlayerData* playerData)> func) {        //spawnFunctions_.push_back
         auto index = static_cast<size_t>(id);
         if (index >= spawnFunctions_.size()) {
             spawnFunctions_.resize(index + 1);
@@ -41,17 +41,22 @@ public:
         spawnAreaFrom_ = from;
         spawnAreaTo_ = to;
     }
-    Entity spawnWithID(EntityTypeID id, bool isPlayer = false) {
+    Entity spawnWithID(EntityTypeID id) {  //non-player
         auto index = static_cast<size_t>(id);
         assert(index < spawnFunctions_.size() && "EntityTypeID not registered!");
         assert(spawnFunctions_[index] && "Spawner function is null!");
-        return spawnFunctions_[index](isPlayer);
+        return spawnFunctions_[index](nullptr);
+    }
+    Entity spawnPlayerEntity(PlayerData* playerData) {
+        assert(playerData && "PlayerData is null!");
+        size_t index = static_cast<size_t>(playerData->type);
+        return spawnFunctions_[index](playerData);
     }
     void addWeightedEntry(EntityTypeID id, double weight) {
         weightedEntries_.push_back({id, weight});
         distDirty_ = true;
     }
-    Entity spawnRandom(bool isPlayer = false) {   //with weight in weightedEntries
+    Entity spawnRandom() {   //with weight in weightedEntries
         if (distDirty_) {   //after weightedEntries change
             std::vector<double> weights;
             weights.reserve(weightedEntries_.size());
@@ -62,7 +67,7 @@ public:
             distDirty_ = false;
         }
         size_t index = dist(gen_);
-        return spawnFunctions_[static_cast<size_t>(weightedEntries_[index].type)](isPlayer);
+        return spawnFunctions_[static_cast<size_t>(weightedEntries_[index].type)](nullptr);
     }
 };
 #endif //UNDEROCEAN_ENTITYFACTORY_H

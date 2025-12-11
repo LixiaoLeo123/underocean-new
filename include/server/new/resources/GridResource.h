@@ -6,6 +6,7 @@
 #define UNDEROCEAN_GRIDRESOURCE_H
 #include <vector>
 #include "common/Types.h"
+#include "server/core(deprecate)/GameData.h"
 struct GridResource {
     struct Cell {
         std::vector<Entity> entities;
@@ -28,6 +29,7 @@ struct GridResource {
             c.entities.clear();
             c.isAOI = false;
         }
+        outOfBoundEntities.clear();
     }
     void insert(Entity e, float x, float y) {
         int c = static_cast<int>(x / cellWidth_);

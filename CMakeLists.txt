@@ -32,6 +32,8 @@ add_executable(Underocean
         src/BoidsSystem.cpp
         src/EntityFactory.cpp
         src/NetworkSyncSystem.cpp
+        src/Level1.cpp
+        src/LevelSceneBase.cpp
 )
 
 # 添加头文件目录

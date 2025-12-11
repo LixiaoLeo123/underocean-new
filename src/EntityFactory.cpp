@@ -4,19 +4,23 @@
 #include "server/new/component/Components.h"
 
 void EntityFactory::initialize() {
-    registerSpawner(EntityTypeID::SMALL_YELLOW, [&](bool isPlayer)->Entity {
+    registerSpawner(EntityTypeID::SMALL_YELLOW, [&](PlayerData* playerData)->Entity {
         Entity newEntity = coord_.createEntity();
         {  //transform
             Transform transform{Random::randFloat(spawnAreaFrom_.x, spawnAreaTo_.x),
                 Random::randFloat(spawnAreaFrom_.y, spawnAreaTo_.y)};
             coord_.addComponent(newEntity, transform);
         }
+        {  //Force
+            coord_.addComponent(newEntity, Force{});
+        }
         {  //mass
             coord_.addComponent<Mass>(newEntity, {ParamTable<EntityTypeID::SMALL_YELLOW>::MASS});
         }
-        {  //entity type
-            EntityType entityType = {EntityTypeID::SMALL_YELLOW};
-            coord_.addComponent(newEntity, entityType);
+        {  //random velocity
+            sf::Vector2f vecVelocity = Random::randUnitVector() * Random::randFloat(0.f,
+                                           ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
+            coord_.addComponent(newEntity, Velocity{vecVelocity.x, vecVelocity.y});
         }
         {  //max velocity (can change)
             MaxVelocity maxVelocity = {ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY};
@@ -30,17 +34,20 @@ void EntityFactory::initialize() {
             Size size = {ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE};
             coord_.addComponent(newEntity, size);
         }
-        if (!isPlayer) {  //boids
-            coord_.addComponent(newEntity, Boids{});
+        {  //entity type
+            EntityType entityType = {EntityTypeID::SMALL_YELLOW};
+            coord_.addComponent(newEntity, entityType);
         }
-        {  //random velocity
-            sf::Vector2f vecVelocity = Random::randUnitVector() * Random::randFloat(0.f,
-                ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
-            coord_.addComponent(newEntity, Velocity{vecVelocity.x, vecVelocity.y});
-        }
-        if (isPlayer) {
+        coord_.addComponent<NetSyncComp>(newEntity, {
+        static_cast<std::uint8_t>(Random::randInt(0, TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC - 1))
+        });
+        if (playerData) {
             coord_.addComponent(newEntity, ForceLoadChunk{});
             coord_.getComponent<Velocity>(newEntity) = static_cast<UVector>(coord_.getComponent<Velocity>(newEntity)) * 2;
+            coord_.addComponent(newEntity, NetworkPeer{playerData->peer});
+        }
+        else {
+            coord_.addComponent(newEntity, Boids{});
         }
         coord_.notifyEntityChanged(newEntity);
         return newEntity;

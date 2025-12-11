@@ -39,6 +39,7 @@ public:
     GameServer& operator=(const GameServer&) = delete;
     std::unordered_map<ENetPeer*, PlayerData> playerList_;
     std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
+    PacketWriter writer_ {};  //reuse
     [[nodiscard]] PacketWriter& getPacketWriter() { return writer; }
     void update(float dt) {
         networkDriver_.pollPackets();
@@ -74,7 +75,7 @@ inline void GameServer::handleConnectionPacket() {  //connect or disconnect
         ENetPeer* peer = namedPacket->peer;
         playerList_[peer] = PlayerData{};
         buffer_.try_emplace(peer);
-        levels_[0]->onPlayerJoin(peer);
+        levels_[0]->onPlayerJoin(playerList_[peer]);
     }
     while (networkDriver_.hasPacket(PKT_DISCONNECT)) {  //handle messages
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_DISCONNECT));
@@ -86,7 +87,7 @@ inline void GameServer::handleConnectionPacket() {  //connect or disconnect
 inline void GameServer::tryRemovePlayer(ENetPeer* peer) {
     auto it = playerList_.find(peer);
     if (it != playerList_.end()) {
-        levels_[it->second.currentLevel]->onPlayerLeave(peer);
+        levels_[it->second.currentLevel]->onPlayerLeave(playerList_[it->second.peer]);
         broadcast("&e" + std::string(it->second.playerId).append(" left the game"));
         playerList_.erase(it);
     }
@@ -103,9 +104,9 @@ inline void GameServer::handleLevelChangePacket() {
         if (packet.size() != 1) continue;
         int to = packet[0];
         if (!isLevelLegal(to)) continue;  //bad packet
-        levels_[it->second.currentLevel]->onPlayerLeave(peer);
+        levels_[it->second.currentLevel]->onPlayerLeave(playerList_[it->second.peer]);
         it->second.currentLevel = to;
-        levels_[to]->onPlayerJoin(peer);
+        levels_[to]->onPlayerJoin(playerList_[it->second.peer]);
         buffer_[peer] = std::queue<std::unique_ptr<NamedPacket>>{}; //clear buffer
     }
 }
@@ -125,10 +126,10 @@ inline void GameServer::broadcast(std::string message) {
         networkDriver_.send(&packet, pair.first, 1, ClientTypes::PKT_MESSAGE, true);
     }
 }
-
 inline void GameServer::handleTransformPacket() {
     while (networkDriver_.hasPacket(PKT_TRANSFORM)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_TRANSFORM));
+        if (networkDriver_.hasPacket(PKT_TRANSFORM)) continue;  //only handle latest packet
         ENetPeer* peer = namedPacket->peer;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;   //dont exist, dont handle
@@ -139,7 +140,6 @@ inline void GameServer::handleTransformPacket() {
         it->second.netY = reader.nextUInt16();
     }
 }
-
 inline void GameServer::handleActionPacket() {
     while (networkDriver_.hasPacket(PKT_ACTION)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_ACTION));

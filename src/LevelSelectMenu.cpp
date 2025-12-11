@@ -102,6 +102,9 @@ void LevelSelectMenu::update(float dt) {
     title_->updateTotal(dt);
     statusIndicator_.update(dt);
     networkDriver_->pollPacket();   //packet handle start (may call on(dis)connect)
+    if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
+        statusIndicator_.setStateConnected();
+    }
 }
 void LevelSelectMenu::render(sf::RenderWindow &window) {
     if (advanced) {
@@ -131,7 +134,6 @@ void LevelSelectMenu::handleEvent(const sf::Event &event) {
     // selectPanel_.handleEvent(event);
 }
 void LevelSelectMenu::handleConnect() {
-    statusIndicator_.setStateConnected();
     sendLoginPacket();
 }
 void LevelSelectMenu::handleDisconnect() {
@@ -140,7 +142,9 @@ void LevelSelectMenu::handleDisconnect() {
 void LevelSelectMenu::sendLoginPacket() {
     writer_.writeStr(GameData::playerId, 16)
         .writeInt8(static_cast<std::uint8_t>(GameData::playerType))
-        .writeInt8(static_cast<std::uint8_t>(GameData::playerSize));
+        .writeInt8(static_cast<std::uint8_t>(GameData::playerSize[GameData::playerType]))
+        .writeInt16(ltonHP16(GameData::playerHP[GameData::playerType]))
+        .writeInt16(ltonFP(GameData::playerFP[GameData::playerType]));
     networkDriver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LOGIN, 1);
     writer_.clearBuffer();
 }

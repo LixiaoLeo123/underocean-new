@@ -11,6 +11,9 @@ Coordinator::Coordinator(){
     registerComponent<NetworkPeer>();
     registerComponent<Size>();
     registerComponent<ForceLoadChunk>();
-
+    registerComponent<HP>();
+    registerComponent<FP>();
+    registerComponent<Mass>();
+    registerComponent<NetSyncComp>();
     registerSystem(Signature{});  //empty to get to
 }

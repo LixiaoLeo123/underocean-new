@@ -8,13 +8,9 @@
 #include "EventBus.h"
 #include "ILevel.h"
 #include "Entity/EntityFactory.h"
-#include "system/AccelerationLimitSystem.h"
-#include "system/AccelerationSystem.h"
-#include "system/GridBuildSystem.h"
 #include "system/ISystem.h"
 #include "system/MovementSystem.h"
-#include "system/VelocityLimitSystem.h"
-
+#include "server/GameServer.h"
 class LevelBase : public ILevel {   //impl basic ecs, abstract
 public:
     explicit LevelBase(GameServer& server) : entityFactory_(coordinator_), server_(server) {
@@ -25,12 +21,15 @@ public:
         for (auto& system : systems_) {
             system->update(dt);
         }
+        ++currentTick;
     }
+    [[nodiscard]] unsigned getCurrentTick() const { return currentTick; }
     virtual UVector getMapSize() = 0;
     virtual std::uint16_t ltonX(float x) = 0;  //local to net x
     virtual float ntolX(std::uint16_t x) = 0;
     virtual std::uint16_t ltonY(float y) = 0;  //local to net y
     virtual float ntolY(std::uint16_t y) = 0;
+    virtual int getLevelID() const = 0;
 private:
     // void coreInitialize() {
     //     coordinator_.emplaceContext<GridResource>();
@@ -55,8 +54,9 @@ protected:
     Coordinator coordinator_ {};
     EntityFactory entityFactory_;
     std::vector<std::unique_ptr<ISystem>> systems_ {};
-    GameServer& server_;
+    GameServer& server_;  //for network
     EventBus eventBus_;
+    unsigned currentTick { 0u };
     // virtual void customInitialize() = 0;
     template<typename T, typename... Args>
     void emplaceSystem(Args&&... args) {   //order matters!

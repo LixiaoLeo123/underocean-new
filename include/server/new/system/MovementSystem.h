@@ -8,6 +8,7 @@
 #include "common/Types.h"
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
+#include "server/new/resources/GridResource.h"
 
 class MovementSystem : public ISystem {
 private:

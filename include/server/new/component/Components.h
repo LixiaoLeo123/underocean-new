@@ -40,7 +40,7 @@ struct EntityType {   //"imagined" bio type, for boids and texture
 //FP decreasing rate proportional to size^3
 //size here float but increase in discrete steps, depending on the type of the fish
 struct Size {
-    float size = 10.f;  //side length
+    float size = 10.f;  //side length, network uint8_t
 };
 struct Mass {
     float mass = 0.f;  //actually, with fish size increasing, mass and force should both increase, but to simplify calculation,
@@ -51,7 +51,7 @@ struct NetworkPeer {
     ENetPeer* peer = nullptr;
 };
 struct HP {
-    float hp { 0.f };  //client will only receive hp / maxHp as std::uint8_t
+    float hp { 0.f };  //client will only receive std::uint16 netHP
     float maxHp { 0.f };
 };
 struct FP {  //food points
@@ -59,6 +59,9 @@ struct FP {  //food points
     float maxFp { 0.f };
 };
 struct ForceLoadChunk {};   //enable aoi in GridBuildSystem
+struct NetSyncComp {  //NetworkSyncSystem
+    std::uint8_t offset;  //decide the tick
+};
 struct UVector {   //not a component, just for vector calculation, U for unified
     float x;
     float y;

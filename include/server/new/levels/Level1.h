@@ -7,38 +7,23 @@
 #include "server/new/Coordinator.h"
 #include "server/new/LevelBase.h"
 #include "server/new/resources/plots/PlotContext1.h"
+#include "server/new/system/AccelerationSystem.h"
 #include "server/new/system/BoidsSystem.h"
 #include "server/new/system/BoundaryCullingSystem.h"
 #include "server/new/system/EntityGenerationSystem.h"
+#include "server/new/system/GridBuildSystem.h"
 #include "server/new/system/NetworkControlSystem.h"
 #include "server/new/system/NetworkSyncSystem.h"
 
 class Level1 final : public LevelBase {
 public:
-    explicit Level1(GameServer& server);
-    void update(float dt) override;
-    void onPlayerLeave(ENetPeer *player) override;
-    void onPlayerJoin(ENetPeer *player) override;
-    void initialize() override {
-        coordinator_.emplaceContext<GridResource>();
-        emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this);
-        emplaceSystem<GridBuildSystem>(coordinator_);
-        emplaceSystem<BoidsSystem>(coordinator_);
-        emplaceSystem<EntityGenerationSystem>(coordinator_, entityFactory_, MAX_ENTITIES);
-        emplaceSystem<BoundaryCullingSystem>(coordinator_);
-        emplaceSystem<AccelerationLimitSystem>(coordinator_);
-        emplaceSystem<AccelerationSystem>(coordinator_);
-        emplaceSystem<VelocityLimitSystem>(coordinator_);
-        emplaceSystem<MovementSystem>(coordinator_);
-        emplaceSystem<NetworkSyncSystem>(coordinator_, server_, *this, eventBus_);
-        getSystem<EntityGenerationSystem>().setGenerationSpeed(10000.f);  //fast spawn
-        coordinator_.ctx<GridResource>().init(MAP_SIZE.x, MAP_SIZE.y, CHUNK_COLS, CHUNK_ROWS);  //40x36 chunks
-        coordinator_.emplaceContext<PlotContext1>();
-        entityFactory_.setSpawnArea({0.f, 0.f}, {MAP_SIZE.x, MAP_SIZE.y});
-        entityFactory_.addWeightedEntry(EntityTypeID::SMALL_YELLOW, 1);
-        networkSignature_.set(Coordinator::getComponentTypeID<NetworkPeer>());
-        coordinator_.registerSystem(networkSignature_);
+    explicit Level1(GameServer& server): LevelBase(server) {
+        initialize();
     }
+    void update(float dt) override;
+    void onPlayerLeave(PlayerData& playerData) override;
+    void onPlayerJoin(PlayerData& playerData) override;
+    void initialize() override;
     UVector getMapSize() override {
         return MAP_SIZE;
     };
@@ -64,34 +49,34 @@ public:
         norm = std::clamp(norm, 0.f, 1.f);
         return static_cast<std::uint16_t>(std::round(norm * 65535.f));
     }
+    [[nodiscard]] int getLevelID() const override { return 1; };
 protected:
     // void customInitialize() override {
     //     emplaceSystem<BoidsSystem>(coordinator_);
     // };
 private:
     static constexpr int MAX_ENTITIES = 8000;
-    static constexpr UVector MAP_SIZE{1280.f, 720.f};  //decided by bg
+    static constexpr UVector MAP_SIZE{1024.f, 192.f};  //decided by bg
     static constexpr int CHUNK_ROWS = 16;   //about 50 x 50 px  15, 26
     static constexpr int CHUNK_COLS = 26;
     Signature networkSignature_{};
 };
-inline Level1::Level1(GameServer& server): LevelBase(server) {
-    initialize();
-}
-inline void Level1::onPlayerLeave(ENetPeer* player) {
+inline void Level1::onPlayerLeave(PlayerData& playerData) {
     auto& peerEntities = coordinator_.getEntitiesWith(networkSignature_);
     for (Entity e : peerEntities) {
-        if (coordinator_.getComponent<NetworkPeer>(e).peer == player) {
+        if (coordinator_.getComponent<NetworkPeer>(e).peer == playerData.peer) {
+            eventBus_.publish<PlayerLeaveEvent>({coordinator_.getComponent<NetworkPeer>(e).peer});
+            playerData.initHP = coordinator_.getComponent<HP>(e).hp;
+            playerData.initFP = coordinator_.getComponent<FP>(e).fp;
+            playerData.size = coordinator_.getComponent<Size>(e).size;
             coordinator_.destroyEntity(e);  //do not break to prevent multiple player bug ?
             break;
         }
     }
 }
-inline void Level1::onPlayerJoin(ENetPeer* player) {   //call by GameServer
-    auto& playerData = server_.playerList_[player];
-    Entity playerEntity = entityFactory_.spawnWithID(playerData.type, true);
-    coordinator_.addComponent(playerEntity, NetworkPeer{player});
-    coordinator_.notifyEntityChanged(playerEntity);
+inline void Level1::onPlayerJoin(PlayerData& playerData) {   //call by GameServer
+    entityFactory_.spawnPlayerEntity(&playerData);
+    eventBus_.publish<PlayerJoinEvent>({playerData});
 }
 inline void Level1::update(float dt) {
     LevelBase::update(dt);

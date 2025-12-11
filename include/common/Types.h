@@ -6,8 +6,8 @@
 #define UNDEROCEAN_TYPES_H
 #include <bitset>
 #include "net(depricate)/enet.h"
-#include "net(depricate)/PacketChannel.h"
 #include <cmath>
+#include <vector>
 //x-macro
 #define ENTITY_TYPES \
 X(SMALL_YELLOW) \
@@ -26,11 +26,31 @@ constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
 using Signature = std::bitset<MAX_COMPONENTS>;
 constexpr float ENTITY_MAX_SIZE = 200.f;
+constexpr float ENTITY_MAX_HP = 32768.f;
+constexpr float ENTITY_MAX_FP = 32768.f;
 inline std::uint8_t ltonSize(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
 inline float ntolSize(std::uint8_t netSize) {    //net size to local size
     return static_cast<float>(netSize) / 255.f * ENTITY_MAX_SIZE;
+}
+inline std::uint16_t ltonHP16(float hp) {    //local hp to net hp, 16 bits for Player
+    return static_cast<std::uint16_t>(std::round(hp / ENTITY_MAX_HP * 65535.f));
+}
+inline float ntolHP16(std::uint16_t netHP) {    //net hp to local hp
+    return static_cast<float>(netHP) / 65535.f * ENTITY_MAX_HP;
+}
+inline std::uint16_t ltonFP(float fp) {    //local fp to net fp
+    return static_cast<std::uint16_t>(std::round(fp / ENTITY_MAX_FP * 65535.f));
+}
+inline float ntolFP(std::uint16_t netFP) {   //net fp to local fp
+    return static_cast<float>(netFP) / 255.f * ENTITY_MAX_FP;
+}
+inline std::uint16_t ltonHP8(float hp) {    //local hp to net hp
+    return static_cast<std::uint16_t>(std::round(hp / ENTITY_MAX_HP * 255.f));
+}
+inline float ntolHP8(std::uint16_t netHP) {    //net hp to local hp, 8 bits for Entity
+    return static_cast<float>(netHP) / 255.f * ENTITY_MAX_HP;
 }
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
@@ -48,7 +68,7 @@ namespace ServerTypes {  //packet that server handle
         PKT_TRANSFORM = 4,  //for server, 2*2 byte
         PKT_ACTION = 5,
         PKT_LOGIN = 6,
-        // char[16] playerId; uint8 type; uint8 size, total 18 byte
+        // char[16] playerId; uint8 type; uint8 size, uint16 hp, uint16 fp, total 22 byte
         COUNT
     };
 }
@@ -62,7 +82,13 @@ namespace ClientTypes {  //packet that client handle
         //2 entityID * n
         PKT_ENTITY_SIZE_CHANGE = 3, //reliable
         //2 entityID 1 newSize
+        PKT_ENTITY_HP_CHANGE = 4,  //reliable
+        //2 entityID 1 newHP
         PKT_MESSAGE = 4,
+        // char[]
+        PKT_PLAYER_STATE_UPDATE = 5, //reliable, send when hp or fp change
+        //1HP 1FP = 2byte
+        PKG_FINISH_LOGIN = 6, //reliable, 2 byte for max HP, 2 byte for max FP, total 4 bytes
         COUNT
     };
 }
@@ -76,13 +102,16 @@ namespace ClientTypes {  //packet that client handle
 //     }
 // }
 constexpr int SERVER_MAX_CONNECTIONS = 32;
-constexpr int SERVER_MAX_BUFFER_SIZE = 100; //100 packets in buffer max!
+constexpr int SERVER_MAX_BUFFER_SIZE = 100; //100 packets in buffer max! in GameServer
+constexpr int NET_MAX_CACHED_PACKETS = 65535; //total in driver
 constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds
 constexpr int PING_TIMES = 128;   //times that tried to ack
 constexpr int PING_TIMEOUT_MIN = 10000;
 constexpr int PING_TIMEOUT_MAX = 20000;
 constexpr int CELL_INIT_RESERVATION = 32;   //see GridResource
-struct PlayerData {  //related to GameServer::handleLoginPacket()!!
+constexpr int TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC = 2;  //every what ticks send dynamic data
+constexpr int TICKS_PLAYER_STATE_UPDATE = 3;  //useful when player state change quickly
+struct PlayerData {  //related to GameServer::handleLoginPacket(), used by levels, valid check by server, as a temp for level change
     ENetPeer* peer = nullptr;
     bool hasLogin = false;
     int currentLevel = 0;
@@ -90,7 +119,9 @@ struct PlayerData {  //related to GameServer::handleLoginPacket()!!
     std::uint16_t netX = 0;  //level divided into grid, 0 - 65535
     std::uint16_t netY = 0;
     EntityTypeID type = EntityTypeID::NONE;
-    std::uint8_t netSize = 0;  //actually ENTITY_MAX_SIZE / netSize
+    float initHP {0.f};  //from 0.f to 1.f
+    float initFP {0.f};
+    float size {0.f};  //actually ENTITY_MAX_SIZE / netSize
 };
 // struct LevelChangeRequest {
 //     ENetPeer* peer;
@@ -115,27 +146,36 @@ inline std::string getLocalString(MsgId id) {  //same
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
-    static constexpr float MAX_VELOCITY = 10.f;
-    static constexpr float MAX_ACCELERATION = 40.f;
+    static constexpr float MAX_VELOCITY = 7.f;
+    static constexpr float MAX_ACCELERATION = 70.f;
     static constexpr float MASS = 1.f;  //mass proportional to size^2
-    static constexpr float INIT_SIZE = 6.f;
-    static constexpr float SIZE_STEP = 2.f;  //size increase step
+    static constexpr float INIT_SIZE = 4.2f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 1.4f;  //size increase step
     static constexpr float HP_BASE = 5.f;  //hp proportional to size
     static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
     static constexpr int PERCEPTION_DIST = 3;   //radius by chunk fish can see
-    static constexpr float NEIGHBOR_RADIUS2 = 100.f;    //boids
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
     static constexpr float AVOID_RADIUS2 = 300.f;
-    static constexpr float COHESION_WEIGHT = 200.f;
-    static constexpr float SEPARATION_WEIGHT = 1000.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 550.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
-
 };
 struct EntitySizeChangeEvent {
     Entity entity;
     float newSize;
+};
+struct EntityHPChangeEvent {
+    Entity entity;
+    float newHP;
+};
+struct PlayerLeaveEvent {
+    ENetPeer* peer;
+};
+struct PlayerJoinEvent {
+    PlayerData& playerData;
 };
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;

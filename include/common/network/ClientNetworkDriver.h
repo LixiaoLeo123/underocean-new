@@ -89,6 +89,8 @@ public:
                         event.packet->data + 1,  //remove type
                         event.packet->data + event.packet->dataLength);
                     packets_[typeByte].push(std::move(packet));
+                    if (packets_[typeByte].size() > NET_MAX_CACHED_PACKETS)
+                        packets_[typeByte].pop();
                     enet_packet_destroy(event.packet);
                     break;
                 }

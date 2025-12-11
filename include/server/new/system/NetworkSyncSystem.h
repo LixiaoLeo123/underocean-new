@@ -11,19 +11,20 @@
 
 #include "common/utils/DBitset.h"
 #include "server/new/EventBus.h"
+#include "server/new/LevelBase.h"
 
 class LevelBase;
 class GameServer;
 
 class NetworkSyncSystem : public ISystem {
-    // TODO: handle entity leave
 private:
     Signature signature_ {};
     Signature aoiSignature_ {}; //for entities in aoi which need to sync
     Coordinator& coord_;
     GameServer& server_;  //use to send data
     LevelBase& level_;   //use to get map size
-    DBitset sizeChangedBits_;  //entities that size changed this frame
+    DBitset sizeChangedBits_ {};  //entities that size changed this frame
+    DBitset hpChangedBits_ {};  //entities that HP changed this frame
     struct PeerAOI {
         DBitset current;
         DBitset last;
@@ -32,6 +33,8 @@ private:
         std::vector<Entity> enterList;   //buffer that can be used multiple times
         std::vector<Entity> leaveList;
         std::vector<Entity> dynamicList;  //all current entities
+        std::uint16_t lastNetHP {0u};
+        std::uint16_t lastNetFP {0u};
     };
     std::unordered_map<ENetPeer*, PeerAOI> peerAOIs;
     static void extractIDs(const DBitset& bits, std::vector<Entity>& out) {
@@ -49,22 +52,34 @@ private:
         }
     }
     void onEntitySizeChange(const EntitySizeChangeEvent& event);
+    void onEntityHPChange(const EntityHPChangeEvent& event);
+    void onPlayerLeave(const PlayerLeaveEvent& event);
+    void onPlayerJoin(const PlayerJoinEvent& event);
 public:
     explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
         : coord_(coordinator), server_(server), level_(level) {
         {
             signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
             signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
-            signature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
             coord_.registerSystem(signature_);
         }
         eventbus.subscribe<EntitySizeChangeEvent>([this](const EntitySizeChangeEvent& event) {
             this->onEntitySizeChange(event);
         });
+        eventbus.subscribe<EntityHPChangeEvent>([this](const EntityHPChangeEvent& event) {
+            this->onEntityHPChange(event);
+        });
+        eventbus.subscribe<PlayerLeaveEvent>([this](const PlayerLeaveEvent& event) {
+            this->onPlayerLeave(event);
+        });
+        eventbus.subscribe<PlayerJoinEvent>([this](const PlayerJoinEvent& event) {
+            this->onPlayerJoin(event);
+        });
         {
             aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
             aoiSignature_.set(Coordinator::getComponentTypeID<Transform>(), true);
             aoiSignature_.set(Coordinator::getComponentTypeID<Size>(), true);
+            aoiSignature_.set(Coordinator::getComponentTypeID<NetSyncComp>(), true);
             coord_.registerSystem(aoiSignature_);
         }
     }
@@ -72,5 +87,17 @@ public:
 };
 inline void NetworkSyncSystem::onEntitySizeChange(const EntitySizeChangeEvent &event) {
     sizeChangedBits_.set(event.entity);
+}
+inline void NetworkSyncSystem::onEntityHPChange(const EntityHPChangeEvent &event) {
+    hpChangedBits_.set(event.entity);
+}
+inline void NetworkSyncSystem::onPlayerLeave(const PlayerLeaveEvent& event) {
+    ENetPeer* peer = event.peer;
+    peerAOIs.erase(peer);
+}
+inline void NetworkSyncSystem::onPlayerJoin(const PlayerJoinEvent& event) {
+    peerAOIs.try_emplace(event.playerData.peer, PeerAOI{});
+    peerAOIs[event.playerData.peer].lastNetHP = ltonHP16(event.playerData.initHP);
+    peerAOIs[event.playerData.peer].lastNetFP = ltonFP(event.playerData.initFP);
 }
 #endif //UNDEROCEAN_NETWORKSYNCSYSTEM_H

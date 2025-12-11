@@ -15,7 +15,7 @@ public:
     ILevel()= default;
     virtual ~ILevel() = default;
     virtual void update(float dt) = 0;
-    virtual void onPlayerLeave(ENetPeer* player) = 0;
-    virtual void onPlayerJoin(ENetPeer* player) = 0;
+    virtual void onPlayerLeave(PlayerData& playerData) = 0;
+    virtual void onPlayerJoin(PlayerData& playerData) = 0;
 };
 #endif //UNDEROCEAN_STATE_H

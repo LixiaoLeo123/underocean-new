@@ -18,6 +18,11 @@ public:
         window.draw(sprite_);
     }
     void update(float dt, sf::Vector2f acc);
+    void setPos(float x, float y) {  //directly set pos
+        position_ = { x, y };
+        velocity_ = { 0.f, 0.f };
+        sprite_.setPosition(position_);
+    }
     void updateAngle();
     void updateAnim(float dt);
     [[nodiscard]] float getMaxAcceleration() const { return maxAcceleration_; };
@@ -112,7 +117,7 @@ inline void PlayerEntity::updateAngle() {
     float delta = angle - current;
     while (delta > 180.f) delta -= 360.f;
     while (delta < -180.f) delta += 360.f;
-    constexpr float alpha = 0.1f;  //less is smoother
+    constexpr float alpha = 0.4f;  //less is smoother
     sprite_.setRotation(current + delta * alpha);
 }
 inline void PlayerEntity::updateAnim(float dt) {

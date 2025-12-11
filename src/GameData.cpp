@@ -18,13 +18,13 @@ void GameData::processSettings(Stream& stream, Op op) {
 #undef X
 }
 void GameData::resetSettings() {   //no file change
-#define X(type, name, default_val) name = default_val;
-#define X_ARRAY(type, name, size, default_val) \
-std::strncpy(name, default_val, size - 1); \
-name[size - 1] = '\0';
-    GAMEDATA_CONFIG_ENTRIES
-#undef X
-#undef X_ARRAY
+// #define X(type, name, default_val) name = default_val;
+// #define X_ARRAY(type, name, size, default_val) \
+// std::strncpy(name, default_val, size - 1); \
+// name[size - 1] = '\0';
+//     GAMEDATA_CONFIG_ENTRIES
+// #undef X
+// #undef X_ARRAY
 }
 void GameData::loadSettings() {    //if file not exist then create a new
     std::ifstream file("settings.cfg", std::ios::binary);

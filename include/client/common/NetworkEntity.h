@@ -1,14 +1,13 @@
 // cpp
 #ifndef UNDEROCEAN_NETWORKENTITY_H
 #define UNDEROCEAN_NETWORKENTITY_H
-
+#include "server/core(deprecate)/GameData.h"
+#define EXP_INTERPOLATION
+#ifdef EXP_INTERPOLATION
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
-#include <algorithm>
-
 #include "ResourceManager.h"
 #include "common/Types.h"
-#include "server/core(deprecate)/GameData.h"
 
 class NetworkEntity {
 public:
@@ -16,7 +15,7 @@ public:
     : clientPos_(0.f, 0.f), prevNetPos_(0.f,0.f), netPos_(0.f,0.f),
       velocity_(0.f,0.f),
       interpTimer_(0.f),
-      hasNet_(false), hasPrevNet_(false), SERVER_DT_(1.f / static_cast<float>(GameData::SERVER_TPS)) {}
+      hasNet_(false), hasPrevNet_(false), SERVER_DT_(static_cast<float>(TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC) / static_cast<float>(GameData::SERVER_TPS)) {}
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
     }
@@ -113,17 +112,14 @@ inline void NetworkEntity::updatePos(float dt) {
         return;
     }
     interpTimer_ += dt;
+    constexpr float ALPHA = 0.05f;  //smoothing factor, less is smoother
     if (interpTimer_ <= SERVER_DT_) {
-        float t = interpTimer_ / SERVER_DT_;
-        // smoothstep easing
-        //float s = t * t * (3.f - 2.f * t);   //smooth
-        float s = t;  //linear
-        clientPos_ = lerp(prevNetPos_, netPos_, s);
+        clientPos_ += (netPos_ - clientPos_) * ALPHA;
         sprite_.setPosition(clientPos_);
     } else {
-        // updates are late: extrapolate using derived velocity
         float extra = interpTimer_ - SERVER_DT_;
-        clientPos_ = netPos_ + velocity_ * extra;
+        sf::Vector2f target = netPos_ + velocity_ * extra;
+        clientPos_ += (target - clientPos_) * ALPHA;
         sprite_.setPosition(clientPos_);
     }
 }
@@ -134,7 +130,7 @@ inline void NetworkEntity::updateAngle() {
     float delta = angle - current;
     while (delta > 180.f) delta -= 360.f;
     while (delta < -180.f) delta += 360.f;
-    constexpr float alpha = 0.1f;  //less is smoother
+    constexpr float alpha = 0.2f;  //less is smoother
     sprite_.setRotation(current + delta * alpha);
 }
 inline void NetworkEntity::updateAnim(float dt) {
@@ -143,4 +139,7 @@ inline void NetworkEntity::updateAnim(float dt) {
     int frame = static_cast<int>(animTimer / frameInterval_) % totalFrames_;
     sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
 }
+#else
+
+#endif
 #endif // UNDEROCEAN_NETWORKENTITY_H

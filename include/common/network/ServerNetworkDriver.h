@@ -33,13 +33,19 @@ public:
         return true;
     }
     void send(const Packet* packet, ENetPeer* peer, int channel, int packetType, bool reliable = false) {  //NOTE: packetType must be valid
-        if (!peer || !packet) return;
-        size_t total = packet->size() + 1; //extra byte for PacketTypeID
-        ENetPacket* enetPacket = enet_packet_create(nullptr, total,
-            !reliable ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : ENET_PACKET_FLAG_RELIABLE);
+        if (!peer) return;
+        size_t payloadSize = packet ? packet->size() : 0;  //allow nu
+        size_t total = payloadSize + 1;
+        ENetPacket* enetPacket = enet_packet_create(
+            nullptr,
+            total,
+            reliable ? ENET_PACKET_FLAG_RELIABLE : ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT
+        );
         if (!enetPacket) return;
         enetPacket->data[0] = static_cast<uint8_t>(packetType);
-        std::memcpy(enetPacket->data + 1, packet->data(), packet->size());
+        if (packet && payloadSize > 0) {
+            std::memcpy(enetPacket->data + 1, packet->data(), payloadSize);
+        }
         enet_peer_send(peer, channel, enetPacket);
     }
     void pollPackets();
@@ -92,6 +98,9 @@ inline void ServerNetworkDriver::pollPackets() {
                     event.packet->data + event.packet->dataLength
                 );
                 packets_[typeByte].push(std::move(namedPacket));
+                // if packets_[typeByte].size() > NETWORK_MAX_CACHED_PACKETS, drop the oldest packet
+                if (packets_[typeByte].size() > NET_MAX_CACHED_PACKETS)
+                    packets_[typeByte].pop();
                 enet_packet_destroy(event.packet);
                 break;
             }

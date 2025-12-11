@@ -26,7 +26,7 @@ void NetworkSyncSystem::update(float dt) {
                 if (grid.cellExistAt(r, c)) {
                     const auto& cell = grid.cellAt(r, c);
                     for (Entity e : cell.entities) {
-                        if (e != peerEntity && coord_.hasSignature(e, aoiSignature_)) {
+                        if (coord_.hasSignature(e, aoiSignature_) && e != peerEntity) {
                             aoi.current.set(e);
                         }
                     }
@@ -39,6 +39,21 @@ void NetworkSyncSystem::update(float dt) {
         extractIDs(aoi.leaveBits, aoi.leaveList);
         extractIDs(aoi.current, aoi.dynamicList);
         PacketWriter& writer = server_.getPacketWriter();
+        {  //send player hp and fp packet (playerState)
+            const auto& hpComp = coord_.getComponent<HP>(peerEntity);
+            const auto& fpComp = coord_.getComponent<FP>(peerEntity);
+            std::uint16_t netHP = ltonHP16(hpComp.hp);
+            std::uint16_t netFP = ltonFP(fpComp.fp);
+            if ((netHP != aoi.lastNetHP || netFP != aoi.lastNetFP)
+                && !((level_.getCurrentTick() + peerEntity) % TICKS_PLAYER_STATE_UPDATE)) {
+                ServerNetworkDriver& driver = server_.getNetworkDriver();
+                writer.writeInt16(netHP).writeInt16(netFP);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_PLAYER_STATE_UPDATE, false);
+                writer.clearBuffer();
+                aoi.lastNetHP = netHP;
+                aoi.lastNetFP = netFP;
+            }
+        }
         {  //send static data for entities first enter AOI
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.enterList) {
@@ -77,6 +92,10 @@ void NetworkSyncSystem::update(float dt) {
         {  //send dynamic data for all visible entities
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.dynamicList) {
+                if ((level_.getCurrentTick() + coord_.getComponent<NetSyncComp>(e).offset) %
+                    TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC) {
+                    continue;   //not this tick
+                }
                 if (!writer.canWrite(6)) {
                     driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_DYNAMIC_DATA, false);
                     writer.clearBuffer();
@@ -103,6 +122,23 @@ void NetworkSyncSystem::update(float dt) {
             }
             if (!writer.takePacket()->empty()) {
                 driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_SIZE_CHANGE, true);
+                writer.clearBuffer();
+            }
+        }
+        {  //handle entity hp packet
+            ServerNetworkDriver& driver = server_.getNetworkDriver();
+            for (Entity e : aoi.dynamicList) {
+                if (hpChangedBits_.test(e)) {
+                    if (!writer.canWrite(3)) {
+                        driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_HP_CHANGE, true);
+                        writer.clearBuffer();
+                    }
+                    const auto&[hp, maxHp] = coord_.getComponent<HP>(e);
+                    writer.writeInt16(e).writeInt8(ltonSize(hp));
+                }
+            }
+            if (!writer.takePacket()->empty()) {
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_HP_CHANGE, true);
                 writer.clearBuffer();
             }
         }

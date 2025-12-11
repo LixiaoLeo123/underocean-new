@@ -16,8 +16,8 @@ class Level0 : public ILevel {  //lobby, a place that handle out of specific lev
 public:
     void update(float dt) override {};
 
-    void onPlayerLeave(ENetPeer *player) override {};
+    void onPlayerLeave(PlayerData& playerData) override {};
 
-    void onPlayerJoin(ENetPeer *player) override {};
+    void onPlayerJoin(PlayerData& playerData) override {};
 };
 #endif //UNDEROCEAN_LEVEL0_H
