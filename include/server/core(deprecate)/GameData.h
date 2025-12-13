@@ -5,9 +5,9 @@
 #ifndef UNDEROCEAN_GAMEDATA_H
 #define UNDEROCEAN_GAMEDATA_H
 #include "common/Types.h"
-#define INIT_PLAYER_SIZE {4.2f, 4.2f, 4.2f, 4.2f}
-#define INIT_PLAYER_HP   {5.f}
-#define INIT_PLAYER_FP   {10.f}
+#define INIT_PLAYER_SIZE {}
+#define INIT_PLAYER_HP   {}
+#define INIT_PLAYER_FP   {}
 #define GAMEDATA_CONFIG_ENTRIES \
 X(ColliderType, COLLIDER_TYPE, OBB) \
 X(int, TPS, 60) \
@@ -18,6 +18,7 @@ X(int, ENTITY_SYNC_RADIUS_X, 3) \
 X(int, ENTITY_SYNC_RADIUS_Y, 2) \
 X(float, CAMERA_ALPHA, 0.05f) \
 X_ARRAY(char, playerId, 16, "@") \
+X_ARRAY(std::uint8_t, playerUUID, 16, {0}) \
 X(int, currentLevel, 6) \
 X(bool, firstPlay, true) \
 X(int, playerType, static_cast<int>(EntityTypeID::SMALL_YELLOW)) \
@@ -32,7 +33,8 @@ enum ColliderType {
 };
 class GameData {
 public:
-    static void loadSettings();    //file to variables
+    static void initSettings();
+    static bool loadSettings();    //file to variables
     static void saveSettings();
     static void resetSettings();
     static void applySettings();    //variables to specific settings

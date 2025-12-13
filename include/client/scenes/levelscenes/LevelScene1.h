@@ -26,17 +26,7 @@ public:
         writer_.clearBuffer();
     }
     void render(sf::RenderWindow& window) override {
-        if (!viewInit_) {
-            resetViewSize(window.getSize().x, window.getSize().y);
-            correctView();
-            viewInit_ = true;
-        }
-        window.setView(view_);
-        window.draw(background_);
-        for (auto& pair : entities_) {
-            pair.second.render(window);
-        }
-        player.render(window);
+        LevelSceneBase::render(window);
     }
     std::uint16_t ltonX(float x) override {
         float norm = 1.f / (2 + CHUNK_COLS) + x / (MAP_SIZE.x) / (1 + 2.f / CHUNK_COLS);

@@ -24,7 +24,7 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //already leave
         Packet& packet = namedPacket->packet;
-        if (packet.size() != 22) continue;    //size change here
+        if (packet.size() != 23) continue;    //size change here
         //deserialize start
         it->second.peer = peer;
         std::copy_n(packet.begin(), 16, it->second.playerId);  //playerId
@@ -43,7 +43,7 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
             // std::copy_n(packet.begin() + 17, 1, &tempNetSize);
             // std::copy_n(packet.begin() + 18, 1, &tempNetInitHP);
             // std::copy_n(packet.begin() + 20, 1, &tempNetInitFP);
-            it->second.size = ntolSize(reader.nextUInt8());
+            it->second.size = ntolSize16(reader.nextUInt16());
             it->second.initHP = ntolHP16(reader.nextUInt16());
             it->second.initFP = ntolFP(reader.nextUInt16());
         }

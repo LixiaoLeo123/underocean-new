@@ -151,10 +151,10 @@ void LevelSelectMenu::handleDisconnect() {
 void LevelSelectMenu::sendLoginPacket() {
     writer_.writeStr(GameData::playerId, 16)
         .writeInt8(static_cast<std::uint8_t>(GameData::playerType))
-        .writeInt8(static_cast<std::uint8_t>(GameData::playerSize[GameData::playerType]))
+        .writeInt16(ltonSize16(GameData::playerSize[GameData::playerType]))
         .writeInt16(ltonHP16(GameData::playerHP[GameData::playerType]))
         .writeInt16(ltonFP(GameData::playerFP[GameData::playerType]));
-    networkDriver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LOGIN, 1);
+    networkDriver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LOGIN, true);
     writer_.clearBuffer();
 }
 void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum supposed to be in current level

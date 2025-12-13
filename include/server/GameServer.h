@@ -62,6 +62,7 @@ public:
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - lastTime).count() / 1e6f;
             if (elapsed >= dt) {
                 update(elapsed);
+                // std::cout << elapsed;
                 lastTime = now;
             } else {
                 std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>((dt - elapsed) * 1e6)));
@@ -129,7 +130,7 @@ inline void GameServer::broadcast(std::string message) {
 inline void GameServer::handleTransformPacket() {
     while (networkDriver_.hasPacket(PKT_TRANSFORM)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_TRANSFORM));
-        if (networkDriver_.hasPacket(PKT_TRANSFORM)) continue;  //only handle latest packet
+        // if (networkDriver_.hasPacket(PKT_TRANSFORM)) continue;  //only handle latest packet
         ENetPeer* peer = namedPacket->peer;
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;   //dont exist, dont handle

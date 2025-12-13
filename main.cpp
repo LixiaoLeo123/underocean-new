@@ -7,7 +7,9 @@
 void startNetServer();
 int main() {
     enet_initialize();
-    //GameData::loadSettings();
+    if (!GameData::loadSettings()) {
+        return 0;
+    }
 #ifdef SERVER_ENV
     GameServer server;
     server.run();

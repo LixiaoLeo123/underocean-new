@@ -17,13 +17,14 @@ X(SMALL_YELLOW)
 class DerivedAttributeSystem : public ISystem{  //calculate maxHP, maxFP, etc. by entity size and type
 private:
     Coordinator& coord_;
+    Signature fpSig_;
 public:
     DerivedAttributeSystem(Coordinator& coord, EventBus& eventBus) : coord_(coord) {
         eventBus.subscribe<AttributedEntityInitEvent>([this](const AttributedEntityInitEvent& event) {
             this->initEntityAttributes(event);
         });
     }
-    void update(float dt) override {
+    void update(float dt) override {  //update fp
 
     }
     void initEntityAttributes(const AttributedEntityInitEvent& event) const;  //from size to attributes, add components

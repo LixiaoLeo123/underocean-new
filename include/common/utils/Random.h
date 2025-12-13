@@ -25,7 +25,7 @@ inline std::mt19937& Random::generator() {
     static std::mt19937 gen{ std::random_device{}() };
     return gen;
 }
-inline float fastRandFloat(float min, float max) {
+inline float Random::fastRandFloat(float min, float max) {
     static std::uint32_t seed = 123456789;
     seed ^= seed << 13;
     seed ^= seed >> 17;
@@ -33,8 +33,10 @@ inline float fastRandFloat(float min, float max) {
     float r = static_cast<float>(seed) * 2.32830644e-10f;
     return min + r * (max - min);
 }
-inline float Random::fastRandFloat(float min, float max) {
-    return randFloat(min, max);
+inline float Random::randFloat(float min, float max) {
+    assert(min <= max);
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(generator());
 }
 inline int Random::randInt(int min, int max) {
     assert(min <= max);

@@ -9,8 +9,7 @@
 #include "ResourceManager.h"
 #include "common/Types.h"
 #include "common/utils/Physics.h"
-#define PLAYER_ENTITY_TYPES \
-X(SMALL_YELLOW)
+
 class PlayerEntity {
 public:
     void setType(EntityTypeID type);
@@ -106,7 +105,7 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // and camera should follow the player smoothly, using GameData::CAMERA_ALPHA
     velocity_ += Physics::clampVec(rawAcc, maxAcceleration_) * dt;
     velocity_ = Physics::clampVec(velocity_, maxVelocity_);
-    position_ += velocity_ * dt;
+    position_ += velocity_ * dt * 3.f;
     adjustPosInBorder();
     sprite_.setPosition(position_);
     updateAnim(dt);

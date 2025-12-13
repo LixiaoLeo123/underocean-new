@@ -48,7 +48,7 @@ public:
         prevNetPos_ = netPos_;
         netPos_ = pos;
         // derive velocity from last two authoritative positions
-        velocity_ = (netPos_ - prevNetPos_) / SERVER_DT_;
+        velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
         interpTimer_ = 0.f;
         hasPrevNet_ = true;
     }
@@ -91,7 +91,7 @@ inline void NetworkEntity::setType(EntityTypeID type) {
     frameInterval_ = getFrameInterval(type);
     frameHeight_ = sprite_.getTexture()->getSize().y;
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
-    sprite_.setOrigin(frameWidth_ / 2.f, frameHeight_ / 2.f);
+    sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
 }
 inline void NetworkEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
@@ -112,16 +112,17 @@ inline void NetworkEntity::updatePos(float dt) {
         return;
     }
     interpTimer_ += dt;
-    constexpr float ALPHA = 0.05f;  //smoothing factor, less is smoother
+    constexpr float ALPHA = 0.7f;  //smoothing factor, less is smoother
+    sf::Vector2f target;
     if (interpTimer_ <= SERVER_DT_) {
-        clientPos_ += (netPos_ - clientPos_) * ALPHA;
-        sprite_.setPosition(clientPos_);
-    } else {
-        float extra = interpTimer_ - SERVER_DT_;
-        sf::Vector2f target = netPos_ + velocity_ * extra;
-        clientPos_ += (target - clientPos_) * ALPHA;
-        sprite_.setPosition(clientPos_);
+        target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
     }
+    else {
+        float extra = interpTimer_ - SERVER_DT_;
+        target = netPos_ += velocity_ * extra;
+    }
+    clientPos_ += (target - clientPos_) * ALPHA;
+    sprite_.setPosition(clientPos_);
 }
 inline void NetworkEntity::updateAngle() {
     if (velocity_.x * velocity_.x + velocity_.y * velocity_.y < ANGLE_UPDATE_SPEED2_THRESHOLD) return; // no movement, no rotation
@@ -136,7 +137,7 @@ inline void NetworkEntity::updateAngle() {
 inline void NetworkEntity::updateAnim(float dt) {
     // update the frame of sprite texture
     animTimer += dt;
-    int frame = static_cast<int>(animTimer / frameInterval_) % totalFrames_;
+    unsigned frame = static_cast<unsigned>(animTimer / frameInterval_) % totalFrames_;
     sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
 }
 #else

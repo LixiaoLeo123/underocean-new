@@ -19,6 +19,8 @@ void LevelSceneBase::render(sf::RenderWindow &window) {
         pair.second.render(window);
     }
     player.render(window);
+    //render player status UI
+    playerStatus_.render(window);
 }
 void LevelSceneBase::handleEntityStaticData() {
     while (auto packet = driver_->popPacket(PacketType::PKT_ENTITY_STATIC_DATA)) {
@@ -33,7 +35,7 @@ void LevelSceneBase::handleEntityStaticData() {
             std::uint16_t netY = reader.nextUInt16();
             auto& entity = entities_[entityId];   //will create if not exist, replace if exist
             entity.setType(type);
-            entity.setSize(ntolSize(netSize));
+            entity.setSize(ntolSize8(netSize));
             entity.setNetworkState({ntolX(netX), ntolY(netY)});
         }
     }
@@ -82,6 +84,7 @@ void LevelSceneBase::update(float dt) {
         playerRawAcc = -2.f * player.getVelocity();
     }
     player.update(dt, playerRawAcc);
+    playerStatus_.update(dt);
     //move view toward player position
     view_.move(GameData::CAMERA_ALPHA * (player.getPosition() - view_.getCenter()));
     correctView();

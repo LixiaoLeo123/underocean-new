@@ -5,8 +5,10 @@
 void InputManager::update(const sf::RenderWindow &window) {
     mousePosWindow = sf::Mouse::getPosition(window);
     mousePosWorld = window.mapPixelToCoords(mousePosWindow);
-    mousePressedLeft = sf::Mouse::isButtonPressed(sf::Mouse::Left);
-    mousePressedRight = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+    if (window.hasFocus()) {
+        mousePressedLeft = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+        mousePressedRight = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+    }
     for (auto key: watchedKeys) {
         keyDown[key] = sf::Keyboard::isKeyPressed(key);
     }

@@ -18,7 +18,8 @@ X(BLUE_LONG) \
 X(RED_LIGHT) \
 X(UGLY_FISH) \
 X(SMALL_SHARK)
-
+#define PLAYER_ENTITY_TYPES \
+X(SMALL_YELLOW)
 using Entity = std::uint16_t;
 constexpr Entity MAX_ENTITIES = 16384;     //2048 byte
 using ComponentType = std::uint8_t;
@@ -30,40 +31,46 @@ constexpr float ENTITY_MAX_HP = 32768.f;
 constexpr float ENTITY_MAX_FP = 32768.f;
 constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
 constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
-inline std::uint8_t ltonSize(float size) {    //local size to net size
+constexpr std::uint8_t ltonSize8(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
-inline float ntolSize(std::uint8_t netSize) {    //net size to local size
+constexpr float ntolSize8(std::uint8_t netSize) {    //net size to local size
     return static_cast<float>(netSize) / 255.f * ENTITY_MAX_SIZE;
 }
-inline std::uint16_t ltonHP16(float hp) {    //local hp to net hp, 16 bits for Player
+constexpr std::uint16_t ltonSize16(float size) {    //local size to net size, for player
+    return static_cast<std::uint16_t>(std::round(size / ENTITY_MAX_SIZE * 65535.f));
+}
+constexpr float ntolSize16(std::uint16_t netSize) {    //net size to local size, for player
+    return static_cast<float>(netSize) / 65535.f * ENTITY_MAX_SIZE;
+}
+constexpr std::uint16_t ltonHP16(float hp) {    //local hp to net hp, 16 bits for Player
     return static_cast<std::uint16_t>(std::round(hp / ENTITY_MAX_HP * 65535.f));
 }
-inline float ntolHP16(std::uint16_t netHP) {    //net hp to local hp
+constexpr float ntolHP16(std::uint16_t netHP) {    //net hp to local hp
     return static_cast<float>(netHP) / 65535.f * ENTITY_MAX_HP;
 }
-inline std::uint16_t ltonFP(float fp) {    //local fp to net fp
+constexpr std::uint16_t ltonFP(float fp) {    //local fp to net fp
     return static_cast<std::uint16_t>(std::round(fp / ENTITY_MAX_FP * 65535.f));
 }
-inline float ntolFP(std::uint16_t netFP) {   //net fp to local fp
-    return static_cast<float>(netFP) / 255.f * ENTITY_MAX_FP;
+constexpr float ntolFP(std::uint16_t netFP) {   //net fp to local fp
+    return static_cast<float>(netFP) / 65535.f * ENTITY_MAX_FP;
 }
-inline std::uint16_t ltonHP8(float hp) {    //local hp to net hp
+constexpr std::uint8_t ltonHP8(float hp) {    //local hp to net hp
     return static_cast<std::uint16_t>(std::round(hp / ENTITY_MAX_HP * 255.f));
 }
-inline float ntolHP8(std::uint16_t netHP) {    //net hp to local hp, 8 bits for Entity
+constexpr float ntolHP8(std::uint8_t netHP) {    //net hp to local hp, 8 bits for Entity
     return static_cast<float>(netHP) / 255.f * ENTITY_MAX_HP;
 }
-inline std::uint16_t ltonVec(float vec) {    //local fp to net fp
+constexpr std::uint16_t ltonVec(float vec) {    //local fp to net fp
     return static_cast<std::uint16_t>(std::round(vec / PLAYER_MAX_MAX_VEC * 65535.f));
 }
-inline float ntolVec(std::uint16_t netVec) {   //net fp to local fp
+constexpr float ntolVec(std::uint16_t netVec) {   //net fp to local fp
     return static_cast<float>(netVec) / 65535.f * PLAYER_MAX_MAX_VEC;
 }
-inline std::uint16_t ltonAcc(float acc) {    //local fp to net fp
+constexpr std::uint16_t ltonAcc(float acc) {    //local fp to net fp
     return static_cast<std::uint16_t>(std::round(acc / PLAYER_MAX_MAX_ACC * 65535.f));
 }
-inline float ntolAcc(std::uint16_t netAcc) {   //net fp to local fp
+constexpr float ntolAcc(std::uint16_t netAcc) {   //net fp to local fp
     return static_cast<float>(netAcc) / 65535.f * PLAYER_MAX_MAX_ACC;
 }
 enum class EntityTypeID : std::uint8_t {
@@ -82,7 +89,7 @@ namespace ServerTypes {  //packet that server handle
         PKT_TRANSFORM = 4,  //for server, 2*2 byte
         PKT_ACTION = 5,
         PKT_LOGIN = 6,
-        // char[16] playerId; uint8 type; uint8 size, uint16 hp, uint16 fp, total 22 byte
+        // char[16] playerId; uint8 type; uint16 size, uint16 hp, uint16 fp, total 23 byte
         COUNT
     };
 }
@@ -166,11 +173,11 @@ inline std::string getLocalString(MsgId id) {  //same
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
-    static constexpr float MAX_VELOCITY = 7.f;
-    static constexpr float MAX_FORCE = 70.f;
+    static constexpr float MAX_VELOCITY = 6.f;
+    static constexpr float MAX_FORCE = 60.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
-    static constexpr float INIT_SIZE = 4.2f;  //remember changing GameData init
-    static constexpr float SIZE_STEP = 0.7f;  //size increase step
+    static constexpr float INIT_SIZE = 3.f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.4f;  //size increase step
     static constexpr float HP_BASE = 5.f;  //hp proportional to size
     static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
@@ -179,7 +186,7 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SEPARATION_RADIUS2 = 50.f;
     static constexpr float AVOID_RADIUS2 = 300.f;
     static constexpr float COHESION_WEIGHT = 500.f;
-    static constexpr float SEPARATION_WEIGHT = 550.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
 };

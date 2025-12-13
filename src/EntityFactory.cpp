@@ -24,13 +24,6 @@ void EntityFactory::initialize(EventBus& eventBus) {
                                            ParamTable<EntityTypeID::SMALL_YELLOW>::MAX_VELOCITY);
             coord_.addComponent(newEntity, Velocity{vecVelocity.x, vecVelocity.y});
         }
-        {  //size
-            Size size = {
-                ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE
-                + ParamTable<EntityTypeID::SMALL_YELLOW>::SIZE_STEP * static_cast<float>(Random::randInt(0, 1))
-            };
-            coord_.addComponent(newEntity, size);
-        }
         {  //entity type
             EntityType entityType = {EntityTypeID::SMALL_YELLOW};
             coord_.addComponent(newEntity, entityType);
@@ -41,9 +34,19 @@ void EntityFactory::initialize(EventBus& eventBus) {
         if (playerData) {
             coord_.addComponent(newEntity, ForceLoadChunk{});
             coord_.addComponent(newEntity, NetworkPeer{playerData->peer});
+            {  //size
+                coord_.addComponent<Size>(newEntity, {playerData->size});
+            }
         }
         else {
             coord_.addComponent(newEntity, Boids{});
+            {  //size
+                Size size = {
+                    ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE
+                    + ParamTable<EntityTypeID::SMALL_YELLOW>::SIZE_STEP * static_cast<float>(Random::randInt(0, 1))
+                };
+                coord_.addComponent(newEntity, size);
+            }
         }
         eventBus.publish<AttributedEntityInitEvent>({newEntity, static_cast<bool>(playerData)});
         coord_.notifyEntityChanged(newEntity);

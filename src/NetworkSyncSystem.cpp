@@ -26,7 +26,7 @@ void NetworkSyncSystem::update(float dt) {
                 if (grid.cellExistAt(r, c)) {
                     const auto& cell = grid.cellAt(r, c);
                     for (Entity e : cell.entities) {
-                        if (coord_.hasSignature(e, aoiSignature_) && e != peerEntity) {
+                        if (coord_.hasSignature(e, aoiSignature_)) { // && e != peerEntity
                             aoi.current.set(e);
                         }
                     }
@@ -66,7 +66,7 @@ void NetworkSyncSystem::update(float dt) {
                 const auto& size = coord_.getComponent<Size>(e);
                 writer.writeInt16(e)
                     .writeInt8(static_cast<std::uint8_t>(entityType.entityID))
-                    .writeInt8(ltonSize(size.size))
+                    .writeInt8(ltonSize8(size.size))
                     .writeInt16(level_.ltonX(entityTransform.x))
                     .writeInt16(level_.ltonY(entityTransform.y));
             }
@@ -117,7 +117,7 @@ void NetworkSyncSystem::update(float dt) {
                         writer.clearBuffer();
                     }
                     const auto& size = coord_.getComponent<Size>(e);
-                    writer.writeInt16(e).writeInt8(ltonSize(size.size));
+                    writer.writeInt16(e).writeInt8(ltonSize8(size.size));
                 }
             }
             if (!writer.takePacket()->empty()) {
@@ -134,7 +134,7 @@ void NetworkSyncSystem::update(float dt) {
                         writer.clearBuffer();
                     }
                     const auto&[hp, maxHp] = coord_.getComponent<HP>(e);
-                    writer.writeInt16(e).writeInt8(ltonSize(hp));
+                    writer.writeInt16(e).writeInt8(ltonHP8(hp));
                 }
             }
             if (!writer.takePacket()->empty()) {

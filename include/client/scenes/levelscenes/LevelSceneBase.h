@@ -26,6 +26,10 @@ public:
         player.setSize(GameData::playerSize[GameData::playerType]);
         player.setMaxVec(playerAttributes.maxVec);
         player.setMaxAcc(playerAttributes.maxAcc);
+        playerStatus_.setMaxHP(playerAttributes.maxHP);
+        playerStatus_.setMaxFP(playerAttributes.maxFP);
+        playerStatus_.setHP(GameData::playerHP[GameData::playerType]);
+        playerStatus_.setFP(GameData::playerFP[GameData::playerType]);
         // get max Acc when mouse is at the left or right side of the view
         accDisRatio_ = player.getMaxAcceleration() * 2 / VIEW_WIDTH;
         // send level change packet
@@ -50,8 +54,8 @@ protected:
     bool viewInit_ { false };  //not init
     ClientCommonPlayerAttributes& playerAttributes_;
 private:
-    constexpr static float VIEW_WIDTH = 90.f;
-    constexpr static float VIEW_HEIGHT = 50.f;
+    constexpr static float VIEW_WIDTH = 80.f;
+    constexpr static float VIEW_HEIGHT = 45.f;
     float accDisRatio_ { -1.f };
     PlayerStatus playerStatus_ {};  //HP and FP indicator
 protected:

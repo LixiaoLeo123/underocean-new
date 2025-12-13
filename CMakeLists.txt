@@ -36,6 +36,7 @@ add_executable(Underocean
         src/LevelSceneBase.cpp
         src/PlayerStatus.cpp
         src/PlayerStatus.cpp
+        src/Integrity.cpp
 )
 
 # 添加头文件目录
