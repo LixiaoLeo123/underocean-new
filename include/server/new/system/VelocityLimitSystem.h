@@ -26,6 +26,7 @@ public:
         for (auto &cell: grid.cells_) {
             if (!cell.isAOI) continue;
             for (Entity entity: cell.entities) {
+                if (coord.hasComponent<NetworkPeer>(entity)) continue;  //skip player controlled entities
                 float maxVelocity = coord.getComponent<MaxVelocity>(entity).maxVelocity;
                 auto &vel = coord.getComponent<Velocity>(entity);
                 float speed2 = vel.vx * vel.vx + vel.vy * vel.vy;

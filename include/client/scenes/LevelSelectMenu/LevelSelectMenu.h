@@ -11,6 +11,8 @@
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
 #include "common/net(depricate)/PacketWriter.h"
 #include "common/network/ClientNetworkDriver.h"
+class ChatBox;
+
 class LevelSelectMenu : public LazyPanelScene {  //network start, real client
 private:
     ClientCommonPlayerAttributes  playerAttributes_ {};
@@ -31,6 +33,7 @@ public:
     void handleLevelButtonClick(int levelNum);   //callback
     void sendLoginPacket();
     void handleFinishLoginPacket();
+    void handleMessagePacket();
 private:
     std::shared_ptr<SmoothTextLabel> title_;
     sf::Sprite background_;
@@ -39,11 +42,13 @@ private:
     StatusIndicator statusIndicator_ {};  //connected?
     bool advanced{ false };  //GameData::level over 3?
     bool shouldReloadUI{ false };  //when from level scene back here
+    bool hasLogin{false};
     std::array<std::shared_ptr<ImageButton>, 6> levelButtons_;
     static constexpr int WIDTH = 576;
     static constexpr int HEIGHT = 324;
     std::shared_ptr<ClientNetworkDriver> networkDriver_;   //can give to levels
     PacketWriter writer_;  //reuse
+    std::shared_ptr<ChatBox> chatBox_;
     void reloadUI();   //bg, buttons
 };
 #endif //UNDEROCEAN_LEVELSELECTMENU_H

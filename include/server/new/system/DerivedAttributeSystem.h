@@ -6,7 +6,6 @@
 #define UNDEROCEAN_DERIVEDATTRIBUTESYSTEM_H
 #include "ISystem.h"
 #include "common/Types.h"
-#include "common/utils/Random.h"
 #include "server/new/Coordinator.h"
 #include "server/new/EventBus.h"
 #include "server/new/component/Components.h"
@@ -17,16 +16,21 @@ X(SMALL_YELLOW)
 class DerivedAttributeSystem : public ISystem{  //calculate maxHP, maxFP, etc. by entity size and type
 private:
     Coordinator& coord_;
+    EventBus& eventBus_;  //to publish entity death event
     Signature fpSig_;
 public:
-    DerivedAttributeSystem(Coordinator& coord, EventBus& eventBus) : coord_(coord) {
+    DerivedAttributeSystem(Coordinator& coord, EventBus& eventBus) : coord_(coord), eventBus_(eventBus) {
         eventBus.subscribe<AttributedEntityInitEvent>([this](const AttributedEntityInitEvent& event) {
             this->initEntityAttributes(event);
         });
+        fpSig_.set(Coordinator::getComponentTypeID<FP>(), true);
+        fpSig_.set(Coordinator::getComponentTypeID<HP>(), true);
+        fpSig_.set(Coordinator::getComponentTypeID<Size>(), true);
+        fpSig_.set(Coordinator::getComponentTypeID<Mass>(), true);
+        fpSig_.set(Coordinator::getComponentTypeID<MaxVelocity>(), true);
+        fpSig_.set(Coordinator::getComponentTypeID<MaxAcceleration>(), true);
     }
-    void update(float dt) override {  //update fp
-
-    }
+    void update(float dt) override;  //update fp
     void initEntityAttributes(const AttributedEntityInitEvent& event) const;  //from size to attributes, add components
     static float calcMaxHP(EntityTypeID type, float size) {
         switch (type) {
@@ -75,6 +79,22 @@ public:
     static float calcMaxVec(EntityTypeID type) {
         switch (type) {
 #define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::MAX_VELOCITY; break;
+            ATTRIBUTE_ENTITY_TYPES
+#undef X
+            default: return -1.f;
+        }
+    }
+    static float calcInitSize(EntityTypeID type) {
+        switch (type) {
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+            ATTRIBUTE_ENTITY_TYPES
+#undef X
+            default: return -1.f;
+        }
+    }
+    static float calcSizeStep(EntityTypeID type) {
+        switch (type) {
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::SIZE_STEP; break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;

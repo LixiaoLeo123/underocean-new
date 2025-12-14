@@ -64,7 +64,14 @@ public:
         index_ += 4;
         return ntohl(val);
     }
-
+    std::string nextStr() {
+        //read all remaining bytes as string
+        int len = static_cast<int>(packet_.size()) - index_;;
+        assert(canRead(len));
+        std::string str(reinterpret_cast<const char*>(&packet_[index_]), len);
+        index_ += len;
+        return str;
+    }
     void jumpBytes(int bytes) {
         assert(canRead(bytes));
         index_ += bytes;

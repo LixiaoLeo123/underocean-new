@@ -15,7 +15,7 @@
 void Level1::initialize() {
     coordinator_.emplaceContext<GridResource>();
     emplaceSystem<DerivedAttributeSystem>(coordinator_, eventBus_);
-    emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this);
+    emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this, eventBus_);
     emplaceSystem<GridBuildSystem>(coordinator_);
     emplaceSystem<BoidsSystem>(coordinator_);
     emplaceSystem<EntityGenerationSystem>(coordinator_, entityFactory_, MAX_ENTITIES);

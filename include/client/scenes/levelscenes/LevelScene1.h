@@ -9,8 +9,8 @@
 
 class LevelScene1 : public LevelSceneBase {
 public:
-    explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes)
-        :LevelSceneBase(driver, playerAttributes) {
+    explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
+        :LevelSceneBase(driver, playerAttributes, chatBox) {
         player.setBorder(MAP_SIZE.x, MAP_SIZE.y);
         // if (GameData::firstPlay) {
         //     player.setPos(-1000.f, -1000.f);  //out of map to play animation
@@ -53,8 +53,8 @@ public:
     UVector getMapSize() override { return MAP_SIZE; };
 private:
     static constexpr UVector MAP_SIZE{1024.f, 192.f };  //decided by bg
-    static constexpr int CHUNK_ROWS = 4;   //about 50 x 50 px
-    static constexpr int CHUNK_COLS = 21;   //no chunk update needed on client, but for net pos convert
+    static constexpr int CHUNK_ROWS = 16;   //about 50 x 50 px
+    static constexpr int CHUNK_COLS = 26;   //no chunk update needed on client, but for net pos convert
     enum class State {
         ANIMATION,
         GAMING

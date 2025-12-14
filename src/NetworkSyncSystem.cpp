@@ -26,7 +26,7 @@ void NetworkSyncSystem::update(float dt) {
                 if (grid.cellExistAt(r, c)) {
                     const auto& cell = grid.cellAt(r, c);
                     for (Entity e : cell.entities) {
-                        if (coord_.hasSignature(e, aoiSignature_)) { // && e != peerEntity
+                        if (coord_.hasSignature(e, aoiSignature_) && e != peerEntity) { // && e != peerEntity
                             aoi.current.set(e);
                         }
                     }
@@ -39,21 +39,6 @@ void NetworkSyncSystem::update(float dt) {
         extractIDs(aoi.leaveBits, aoi.leaveList);
         extractIDs(aoi.current, aoi.dynamicList);
         PacketWriter& writer = server_.getPacketWriter();
-        {  //send player hp and fp packet (playerState)
-            const auto& hpComp = coord_.getComponent<HP>(peerEntity);
-            const auto& fpComp = coord_.getComponent<FP>(peerEntity);
-            std::uint16_t netHP = ltonHP16(hpComp.hp);
-            std::uint16_t netFP = ltonFP(fpComp.fp);
-            if ((netHP != aoi.lastNetHP || netFP != aoi.lastNetFP)
-                && !((level_.getCurrentTick() + peerEntity) % TICKS_PLAYER_STATE_UPDATE)) {
-                ServerNetworkDriver& driver = server_.getNetworkDriver();
-                writer.writeInt16(netHP).writeInt16(netFP);
-                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_PLAYER_STATE_UPDATE, false);
-                writer.clearBuffer();
-                aoi.lastNetHP = netHP;
-                aoi.lastNetFP = netFP;
-            }
-        }
         {  //send static data for entities first enter AOI
             ServerNetworkDriver& driver = server_.getNetworkDriver();
             for (Entity e : aoi.enterList) {
@@ -140,6 +125,22 @@ void NetworkSyncSystem::update(float dt) {
             if (!writer.takePacket()->empty()) {
                 driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_HP_CHANGE, true);
                 writer.clearBuffer();
+            }
+        }
+        //here for player entity sync. players should be treated differently because they need updates with higher accuracy
+        {  //send player hp and fp packet (playerState)
+            const auto &hpComp = coord_.getComponent<HP>(peerEntity);
+            const auto &fpComp = coord_.getComponent<FP>(peerEntity);
+            std::uint16_t netHP = ltonHP16(hpComp.hp);
+            std::uint16_t netFP = ltonFP(fpComp.fp);
+            if ((hpComp.hp != aoi.lastHP || fpComp.fp != aoi.lastFP)
+                && !((level_.getCurrentTick() + peerEntity) % TICKS_PLAYER_STATE_UPDATE)) {
+                ServerNetworkDriver &driver = server_.getNetworkDriver();
+                writer.writeInt16(netHP).writeInt16(netFP);
+                driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_PLAYER_STATE_UPDATE, false);
+                writer.clearBuffer();
+                aoi.lastHP = hpComp.hp;
+                aoi.lastFP = fpComp.fp;
             }
         }
     }

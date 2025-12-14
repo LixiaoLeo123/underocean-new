@@ -8,7 +8,7 @@
 #include <memory>
 #include <queue>
 #include <string>
-
+#include <functional>
 #include "common/Types.h"
 #include "common/net(depricate)/enet.h"
 using namespace ClientTypes;
@@ -26,7 +26,7 @@ public:
     bool connect(const std::string& ip, int port) {
         ENetAddress clientAddr {};
         clientAddr.host = ENET_HOST_ANY;
-        clientAddr.port = 0; // 0 = 系统随机
+        clientAddr.port = 0; //random
         clientHost_ = enet_host_create(&clientAddr, 1, 2, 0, 0);
         // clientHost_ = enet_host_create(nullptr, 1, 2, 0, 0);
         if (clientHost_ == nullptr) {

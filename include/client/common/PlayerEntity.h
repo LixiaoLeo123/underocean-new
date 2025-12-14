@@ -4,6 +4,7 @@
 
 #ifndef UNDEROCEAN_PLAYERENTITY_H
 #define UNDEROCEAN_PLAYERENTITY_H
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 
 #include "ResourceManager.h"

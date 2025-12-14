@@ -25,13 +25,17 @@ public:
 template<typename EventType>
 class EventDispatcher : public IEventDispatcher {
 public:
-    using Callback = std::function<void(const EventType&)>;
+    struct Callback {
+        std::function<void(const EventType&)> func_;
+        int priority_;
+    };
     void subscribe(Callback cb) {
         listeners.push_back(std::move(cb));
+        sort();
     }
     void publish(const EventType& event) {
         for (auto& callback : listeners) {
-            callback(event);
+            callback.func_(event);
         }
     }
     void clear() {
@@ -39,13 +43,19 @@ public:
     }
 private:
     std::vector<Callback> listeners;
+    void sort() {
+        std::sort(listeners.begin(), listeners.end(),
+        [](const Callback& a, const Callback& b) {
+            return a.priority_ > b.priority_;
+        });
+    }
 };
 class EventBus {
 public:
     EventBus() = default;
     ~EventBus() = default;
     template<typename EventType>
-    void subscribe(std::function<void(const EventType&)> callback) {
+    void subscribe(std::function<void(const EventType&)> callback, int priority = 0) {
         EventTypeID id = getEventID<EventType>();
         if (id >= dispatchers.size()) {
             dispatchers.resize(id + 1);
@@ -54,7 +64,7 @@ public:
             dispatchers[id] = std::make_unique<EventDispatcher<EventType>>();
         }
         auto* specificDispatcher = static_cast<EventDispatcher<EventType>*>(dispatchers[id].get());
-        specificDispatcher->subscribe(std::move(callback));
+        specificDispatcher->subscribe({std::move(callback), priority});
     }
     template<typename EventType>
     void publish(const EventType& event) {

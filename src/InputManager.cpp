@@ -9,6 +9,9 @@ void InputManager::update(const sf::RenderWindow &window) {
         mousePressedLeft = sf::Mouse::isButtonPressed(sf::Mouse::Left);
         mousePressedRight = sf::Mouse::isButtonPressed(sf::Mouse::Right);
     }
+    else {
+        mousePressedLeft = mousePressedRight = false;
+    }
     for (auto key: watchedKeys) {
         keyDown[key] = sf::Keyboard::isKeyPressed(key);
     }

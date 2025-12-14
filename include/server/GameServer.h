@@ -65,7 +65,7 @@ public:
                 // std::cout << elapsed;
                 lastTime = now;
             } else {
-                std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>((dt - elapsed) * 1e6)));
+                //std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>((dt - elapsed) * 1e6)));
             }
         }
     }

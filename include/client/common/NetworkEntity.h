@@ -4,6 +4,8 @@
 #include "server/core(deprecate)/GameData.h"
 #define EXP_INTERPOLATION
 #ifdef EXP_INTERPOLATION
+#include <iostream>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include "ResourceManager.h"
@@ -30,7 +32,7 @@ public:
     }
     void setPos(sf::Vector2f pos){ setPos(pos.x, pos.y); }
     // server sends only position and server update interval
-    void setNetworkState(const sf::Vector2f& pos) {
+    void setNetworkState(const sf::Vector2f& pos, unsigned currentTick) {  //tick to avoid two state in one tick, causing inf velocity
         if (!hasNet_) {
             // first authoritative sample: set both prev and current to same value
             prevNetPos_ = pos;
@@ -44,13 +46,20 @@ public:
             sprite_.setPosition(clientPos_);
             return;
         }
-        // shift the last network sample into previous and set new latest
-        prevNetPos_ = netPos_;
-        netPos_ = pos;
-        // derive velocity from last two authoritative positions
-        velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
-        interpTimer_ = 0.f;
+        if (lastTick_ != currentTick) {
+            if (interpTimer_ > 0.001f)
+                velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
+            prevNetPos_ = netPos_;
+            netPos_ = pos;
+            interpTimer_ = 0.f;
+        }
+        else {
+            netPos_ = pos;
+            if (interpTimer_ > 0.001f)
+                velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
+        }
         hasPrevNet_ = true;
+        lastTick_ = currentTick;
     }
     // Call each frame with delta time in seconds
     void update(float dt) {
@@ -80,6 +89,7 @@ private:
     bool hasNet_;
     bool hasPrevNet_;
     int totalFrames_{ -1 };   // decided by type
+    unsigned lastTick_{ 0 };
     float frameInterval_{ -1.f }; // time per frame
     unsigned frameWidth_{ 0u };   // decided by type
     unsigned frameHeight_{ 0u };  // decided by type
@@ -112,14 +122,14 @@ inline void NetworkEntity::updatePos(float dt) {
         return;
     }
     interpTimer_ += dt;
-    constexpr float ALPHA = 0.7f;  //smoothing factor, less is smoother
+    constexpr float ALPHA = 0.4f;  //smoothing factor, less is smoother
     sf::Vector2f target;
     if (interpTimer_ <= SERVER_DT_) {
         target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
     }
     else {
         float extra = interpTimer_ - SERVER_DT_;
-        target = netPos_ += velocity_ * extra;
+        target = netPos_ + velocity_ * extra;
     }
     clientPos_ += (target - clientPos_) * ALPHA;
     sprite_.setPosition(clientPos_);

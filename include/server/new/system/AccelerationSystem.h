@@ -28,6 +28,7 @@ public:
             if (!cell.isAOI) continue;
             for (Entity entity : cell.entities) {
                 if (!coord_.hasSignature(entity, signature_)) continue;
+                if (coord_.hasComponent<NetworkPeer>(entity)) continue;  //skip player controlled entities
                 assert(coord_.getComponent<Mass>(entity).mass != 0.f && "Mass component's mass should not be zero");
                 coord_.getComponent<Velocity>(entity) +=
                     static_cast<UVector>(coord_.getComponent<Force>(entity)) / coord_.getComponent<Mass>(entity).mass * dt;

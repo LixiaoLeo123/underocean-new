@@ -27,6 +27,7 @@ public:
             if (!cell.isAOI) continue;
             for (Entity entity : cell.entities) {
                 if (!coord_.hasSignature(entity, signature_)) continue;
+                if (coord_.hasComponent<NetworkPeer>(entity)) continue;  //skip player controlled entities
                 coord_.getComponent<Transform>(entity) +=
                     static_cast<UVector>(coord_.getComponent<Velocity>(entity)) * dt;
             }

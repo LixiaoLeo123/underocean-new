@@ -3,7 +3,7 @@ project(Underocean)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 设置 SFML 路径
+
 set(SFML_DIR "C:/Users/15201/Documents/code/cpp/SFML-2.6.2-windows-vc17-64-bit/SFML-2.6.2/lib/cmake/SFML")
 find_package(SFML REQUIRED COMPONENTS audio network graphics window system)
 
@@ -13,9 +13,10 @@ else()
     message("SFML FOUND!")
 endif()
 
-# 注意：Button.cpp 重复了多次，建议清理（不影响编译但不整洁）
+
 add_executable(Underocean
         main.cpp
+        src/DerivedAttributeSystem.cpp
         src/Button.cpp
         src/GameData.cpp
         src/INodeScene.cpp
@@ -37,14 +38,15 @@ add_executable(Underocean
         src/PlayerStatus.cpp
         src/PlayerStatus.cpp
         src/Integrity.cpp
+        src/ChatBox.cpp
 )
 
-# 添加头文件目录
+
 target_include_directories(Underocean PRIVATE
         ${CMAKE_SOURCE_DIR}/include
 )
 
-# ✅ 统一使用 keyword 语法（全部用 PRIVATE）
+
 target_link_libraries(Underocean PRIVATE
         sfml-audio
         sfml-network
@@ -53,7 +55,7 @@ target_link_libraries(Underocean PRIVATE
         sfml-system
 )
 
-# Windows 额外链接系统库
+
 if(WIN32)
     target_link_libraries(Underocean PRIVATE
             ws2_32

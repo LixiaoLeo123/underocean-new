@@ -8,6 +8,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 
 #include "PlayerStatus.h"
+#include "client/common/ChatBox.h"
 #include "client/common/InputManager.h"
 #include "client/common/IScene.h"
 #include "client/common/NetworkEntity.h"
@@ -20,8 +21,8 @@
 
 class LevelSceneBase : public IScene{
 public:
-    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes)
-        :driver_(driver), playerAttributes_(playerAttributes) {
+    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
+        :driver_(driver), playerAttributes_(playerAttributes), chatBox_(chatBox) {
         player.setType(static_cast<EntityTypeID>(GameData::playerType));
         player.setSize(GameData::playerSize[GameData::playerType]);
         player.setMaxVec(playerAttributes.maxVec);
@@ -42,7 +43,11 @@ public:
     void handleEntityStaticData();
     void handleEntityLeave();
     void handleEntityDynamic();
-    void handlePlayerStateUpdate();
+    void handlePlayerStateUpdate();  //fp, hp
+    void handleEntitySizeChange();
+    void handlePlayerAttributesUpdate();  //max hp, max fp, max vel, max acc
+    void handleMessagePacket();
+    [[nodiscard]] unsigned getCurrentTick() const { return currentTick_; }
     virtual UVector getMapSize() = 0;
     virtual std::uint16_t ltonX(float x) = 0;  //local to net x
     virtual float ntolX(std::uint16_t x) = 0;
@@ -52,6 +57,7 @@ protected:
     sf::Sprite background_;
     sf::View view_ {};
     bool viewInit_ { false };  //not init
+    std::shared_ptr<ChatBox> chatBox_;
     ClientCommonPlayerAttributes& playerAttributes_;
 private:
     constexpr static float VIEW_WIDTH = 80.f;
@@ -63,6 +69,7 @@ protected:
     PlayerEntity player;
     std::shared_ptr<ClientNetworkDriver> driver_;  //given by LevelSelectMenu
     PacketWriter writer_;  //reuse
+    unsigned currentTick_ { 0 };
 };
 inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight) {
     float windowRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
@@ -83,6 +90,7 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
         correctView();
         playerStatus_.onWindowSizeChange(event.size.width, event.size.height);
     }
+    chatBox_->handleEvent(event);
 }
 inline void LevelSceneBase::correctView() {
     if (view_.getCenter().x < view_.getSize().x / 2)

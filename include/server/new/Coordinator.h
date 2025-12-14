@@ -134,6 +134,7 @@ public:
     }
     template<typename T>
     T& getComponent(Entity entity) {  //unsafe
+        assert(hasComponent<T>(entity) && "Component has registered!");
         return getComponentArray<T>()->GetData(entity);
     }
     void registerSystem(Signature signature) {   //call by system only, copy va

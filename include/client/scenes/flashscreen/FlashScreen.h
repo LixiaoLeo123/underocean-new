@@ -72,7 +72,7 @@ public:
         if (float time = clock_.getElapsedTime().asSeconds(); time > blackScreenDelay) {
             state_ = ShowTitle;
             title_->setVisible(true);
-            if (time > skipDelay) {
+            if (ResourceManager::hasPreloaded()) {
                 state_ = Skip;
                 skipTip_->setVisible(true);
             }

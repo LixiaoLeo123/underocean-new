@@ -62,7 +62,7 @@ bool GameData::loadSettings() {    //if file not exist then create a new
     if (!file) {
         initSettings();
         saveSettings();
-        return false;
+        return true;
     }
     std::vector<std::uint8_t> fileData(
         (std::istreambuf_iterator<char>(file)),

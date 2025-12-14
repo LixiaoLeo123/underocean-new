@@ -27,6 +27,7 @@ public:
             if (!cell.isAOI) continue;
             for (Entity entity : cell.entities) {
                 if (!coord.hasSignature(entity, signature_)) continue;
+                if (coord.hasComponent<NetworkPeer>(entity)) continue;  //skip player controlled entities
                 float maxAcceleration = coord.getComponent<MaxAcceleration>(entity).maxAcceleration;
                 auto& acc = coord.getComponent<Force>(entity);
                 float acc2 = acc.ax * acc.ax + acc.ay * acc.ay;

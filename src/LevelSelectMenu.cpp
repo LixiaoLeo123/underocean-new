@@ -1,4 +1,6 @@
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
+
+#include "client/common/ChatBox.h"
 #include "client/common/ResourceManager.h"
 #include "client/scenes/levelscenes/LevelScene1.h"
 #include "server/core(deprecate)/GameData.h"
@@ -29,7 +31,9 @@ LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, 
           }
       },
       obj0_(ResourceManager::getTexture("images/backgrounds/bg3/stars.png"), HEIGHT, -0.2f, 0.f, 10.f, 0.06f),
-      obj1_(ResourceManager::getTexture("images/backgrounds/bg3/ball.png"), HEIGHT, 0.1f, 1.f, 10.f, 0.06f) {
+      obj1_(ResourceManager::getTexture("images/backgrounds/bg3/ball.png"), HEIGHT, 0.1f, 1.f, 10.f, 0.06f),
+      chatBox_(std::make_shared<ChatBox>(*networkDriver_, std::string(GameData::playerId)))
+{
     if (GameData::currentLevel < 4) {
         background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg2/bg2.png"));
         obj0_ = FloatingObj(ResourceManager::getTexture("images/backgrounds/bg2/cloud.png"), HEIGHT, -0.06f, 0.f,
@@ -92,7 +96,7 @@ void LevelSelectMenu::reloadUI() {
         }
     }
 }
-inline void LevelSelectMenu::handleFinishLoginPacket() {
+void LevelSelectMenu::handleFinishLoginPacket() {
     if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
         if (packet->size() != 8) return;
         PacketReader reader(std::move(*packet));
@@ -101,6 +105,14 @@ inline void LevelSelectMenu::handleFinishLoginPacket() {
         playerAttributes_.maxVec = ntolVec(reader.nextUInt16());
         playerAttributes_.maxAcc = ntolAcc(reader.nextUInt16());
         statusIndicator_.setStateConnected();
+        hasLogin = true;
+    }
+}
+void LevelSelectMenu::handleMessagePacket() {
+    while (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKT_MESSAGE)) {
+        PacketReader reader(std::move(*packet));
+        std::string message = reader.nextStr();
+        chatBox_->addMessage(message);
     }
 }
 void LevelSelectMenu::update(float dt) {
@@ -114,6 +126,8 @@ void LevelSelectMenu::update(float dt) {
     statusIndicator_.update(dt);
     networkDriver_->pollPacket();   //packet handle start (may call on(dis)connect)
     handleFinishLoginPacket();
+    handleMessagePacket();
+    chatBox_->update(dt);
 }
 void LevelSelectMenu::render(sf::RenderWindow &window) {
     if (advanced) {
@@ -129,11 +143,14 @@ void LevelSelectMenu::render(sf::RenderWindow &window) {
     getPanel().render(window);
     title_->render(window);
     statusIndicator_.render(window);
+    chatBox_->render(window);
 }
 void LevelSelectMenu::handleEvent(const sf::Event &event) {
     LazyPanelScene::handleEvent(event);
-    getPanel().handleEvent(event);
+    if (!chatBox_->isOpen())
+        getPanel().handleEvent(event);
     statusIndicator_.adjustBound(view_);
+    chatBox_->handleEvent(event);
     // if (event.type == sf::Event::Resized) {
     //     unsigned int winWidth = event.size.width;
     //     unsigned int winHeight = event.size.height;
@@ -158,14 +175,14 @@ void LevelSelectMenu::sendLoginPacket() {
     writer_.clearBuffer();
 }
 void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum supposed to be in current level
-    if (!networkDriver_->isConnected()) {
+    if (!hasLogin) {
         statusIndicator_.setStateProcessing();
     }
     else {
         shouldReloadUI = true;
         SceneSwitchRequest request = {
             SceneSwitchRequest::Push,
-            std::make_unique<LevelScene1>(networkDriver_, playerAttributes_),
+            std::make_unique<LevelScene1>(networkDriver_, playerAttributes_, chatBox_),
             0,
             0
         };

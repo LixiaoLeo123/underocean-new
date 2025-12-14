@@ -16,12 +16,16 @@ private:
     Coordinator& coord_;  //to get entity and modify entity
     GameServer& server_;  //to get network information (PlayerData)
     LevelBase& level_;    //to convert net pos and local pos
+    std::unordered_map<ENetPeer*, UVector> networkEntityPrevTransform_ {};  //for velocity calculating
 public:
-    explicit NetworkControlSystem(Coordinator& coordinator, GameServer& server, LevelBase& level)  //mapSize to trans from netPos to realPos
+    explicit NetworkControlSystem(Coordinator& coordinator, GameServer& server, LevelBase& level, EventBus& eventBus)  //mapSize to trans from netPos to realPos
         :coord_(coordinator), server_(server), level_(level){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<NetworkPeer>()), true);
         coord_.registerSystem(signature_);
+        eventBus.subscribe<PlayerLeaveEvent>([this](const PlayerLeaveEvent& event) {
+            this->onPlayerLeave(event);
+        });
     }
     void update(float dt) override {
         auto& networkEntities = coord_.getEntitiesWith(signature_);
@@ -32,7 +36,16 @@ public:
             float worldY = level_.ntolY(server_.playerList_[peer].netY);
             trans.x = worldX;  //update pos
             trans.y = worldY;
+            auto prevIt = networkEntityPrevTransform_.find(peer);
+            if (prevIt != networkEntityPrevTransform_.end()) {
+                coord_.getComponent<Velocity>(e) = ((UVector)trans - prevIt->second) / dt;  //update velocity
+            }
+            networkEntityPrevTransform_[peer] = trans;  //update prev pos
         }
+    }
+    void onPlayerLeave(const PlayerLeaveEvent& event) {
+        ENetPeer* peer = event.peer;
+        networkEntityPrevTransform_.erase(peer);
     }
 };
 #endif //UNDEROCEAN_NETWORKCONTROLSYSTEM_H

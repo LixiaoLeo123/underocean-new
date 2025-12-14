@@ -27,8 +27,8 @@ constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
 using Signature = std::bitset<MAX_COMPONENTS>;
 constexpr float ENTITY_MAX_SIZE = 200.f;
-constexpr float ENTITY_MAX_HP = 32768.f;
-constexpr float ENTITY_MAX_FP = 32768.f;
+constexpr float ENTITY_MAX_HP = 65535.f;
+constexpr float ENTITY_MAX_FP = 2048.f;
 constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
 constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
 constexpr std::uint8_t ltonSize8(float size) {    //local size to net size
@@ -109,7 +109,9 @@ namespace ClientTypes {  //packet that client handle
         // char[]
         PKT_PLAYER_STATE_UPDATE = 5, //reliable, send when hp or fp change
         //1HP 1FP = 2byte
-        PKG_FINISH_LOGIN = 6, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
+        PKT_PLAYER_ATTRIBUTES_UPDATE = 6,  //reliable, when max attributes change(including hp, fp, vel, acc)
+        //2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
+        PKG_FINISH_LOGIN = 7, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
         COUNT
     };
 }
@@ -129,6 +131,7 @@ constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds
 constexpr int PING_TIMES = 128;   //times that tried to ack
 constexpr int PING_TIMEOUT_MIN = 10000;
 constexpr int PING_TIMEOUT_MAX = 20000;
+constexpr int MAX_MESSAGE_CHARACTER = 100;
 constexpr int CELL_INIT_RESERVATION = 32;   //see GridResource
 constexpr int TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC = 2;  //every what ticks send dynamic data
 constexpr int TICKS_PLAYER_STATE_UPDATE = 3;  //useful when player state change quickly
@@ -178,7 +181,7 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 3.f;  //remember changing GameData init
     static constexpr float SIZE_STEP = 0.4f;  //size increase step
-    static constexpr float HP_BASE = 5.f;  //hp proportional to size
+    static constexpr float HP_BASE = 50.f;  //hp proportional to size
     static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
     static constexpr int PERCEPTION_DIST = 3;   //radius by chunk fish can see
@@ -204,9 +207,16 @@ struct PlayerLeaveEvent {
 struct PlayerJoinEvent {
     PlayerData& playerData;
 };
-struct AttributedEntityInitEvent {
+struct AttributedEntityInitEvent {  //for EntityFactory to init attributes
     Entity e;
     bool shouldAddFP;
+};
+struct EntityDeathEvent {
+    Entity entity;
+};
+struct ClientCommonPlayerAttributesChangeEvent {
+    ENetPeer* peer{};
+    ClientCommonPlayerAttributes newAttributes{};
 };
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;

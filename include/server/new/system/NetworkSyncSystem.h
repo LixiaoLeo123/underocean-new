@@ -33,8 +33,8 @@ private:
         std::vector<Entity> enterList;   //buffer that can be used multiple times
         std::vector<Entity> leaveList;
         std::vector<Entity> dynamicList;  //all current entities
-        std::uint16_t lastNetHP {0u};
-        std::uint16_t lastNetFP {0u};
+        float lastHP {0u};
+        float lastFP {0u};
     };
     std::unordered_map<ENetPeer*, PeerAOI> peerAOIs;
     static void extractIDs(const DBitset& bits, std::vector<Entity>& out) {
@@ -55,6 +55,7 @@ private:
     void onEntityHPChange(const EntityHPChangeEvent& event);
     void onPlayerLeave(const PlayerLeaveEvent& event);
     void onPlayerJoin(const PlayerJoinEvent& event);
+    void onClientCommonPlayerAttributesChange(const ClientCommonPlayerAttributesChangeEvent& event) const;
 public:
     explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
         : coord_(coordinator), server_(server), level_(level) {
@@ -74,6 +75,9 @@ public:
         });
         eventbus.subscribe<PlayerJoinEvent>([this](const PlayerJoinEvent& event) {
             this->onPlayerJoin(event);
+        });
+        eventbus.subscribe<ClientCommonPlayerAttributesChangeEvent>([this](const ClientCommonPlayerAttributesChangeEvent& event) {
+            this->onClientCommonPlayerAttributesChange(event);
         });
         {
             aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
@@ -97,7 +101,18 @@ inline void NetworkSyncSystem::onPlayerLeave(const PlayerLeaveEvent& event) {
 }
 inline void NetworkSyncSystem::onPlayerJoin(const PlayerJoinEvent& event) {
     peerAOIs.try_emplace(event.playerData.peer, PeerAOI{});
-    peerAOIs[event.playerData.peer].lastNetHP = ltonHP16(event.playerData.initHP);
-    peerAOIs[event.playerData.peer].lastNetFP = ltonFP(event.playerData.initFP);
+    peerAOIs[event.playerData.peer].lastHP = event.playerData.initHP;
+    peerAOIs[event.playerData.peer].lastFP = event.playerData.initFP;
+}
+inline void NetworkSyncSystem::onClientCommonPlayerAttributesChange(
+    const ClientCommonPlayerAttributesChangeEvent &event) const {
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt16(ltonHP16(event.newAttributes.maxHP))
+        .writeInt16(ltonFP(event.newAttributes.maxFP))
+        .writeInt16(ltonVec(event.newAttributes.maxVec))
+        .writeInt16(ltonAcc(event.newAttributes.maxAcc));
+    driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_PLAYER_ATTRIBUTES_UPDATE, true);
+    writer.clearBuffer();
 }
 #endif //UNDEROCEAN_NETWORKSYNCSYSTEM_H

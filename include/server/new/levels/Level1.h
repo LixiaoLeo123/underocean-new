@@ -51,7 +51,7 @@ protected:
     //     emplaceSystem<BoidsSystem>(coordinator_);
     // };
 private:
-    static constexpr int MAX_ENTITIES = 8000;
+    static constexpr int MAX_ENTITIES = 15000;
     static constexpr UVector MAP_SIZE{1024.f, 192.f};  //decided by bg
     static constexpr int CHUNK_ROWS = 16;   //about 50 x 50 px  15, 26
     static constexpr int CHUNK_COLS = 26;
