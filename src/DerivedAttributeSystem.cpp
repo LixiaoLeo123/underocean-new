@@ -51,11 +51,11 @@ void DerivedAttributeSystem::update(float dt) {  //update fp
                 eventBus_.publish<ClientCommonPlayerAttributesChangeEvent>({
                     coord_.getComponent<NetworkPeer>(entity).peer,
                 {
-                    coord_.getComponent<HP>(entity).maxHp,
-                    fp.maxFp,
-                    coord_.getComponent<MaxVelocity>(entity).maxVelocity,
-                    coord_.getComponent<MaxAcceleration>(entity).maxAcceleration
-                }
+                        coord_.getComponent<HP>(entity).maxHp,
+                        fp.maxFp,
+                        coord_.getComponent<MaxVelocity>(entity).maxVelocity,
+                        coord_.getComponent<MaxAcceleration>(entity).maxAcceleration
+                    }
                 });
             }
         }

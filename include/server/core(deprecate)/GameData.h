@@ -14,8 +14,8 @@ X(int, TPS, 60) \
 X(int, FPS, 60) \
 X(int, IPS, 20) \
 X(int, SERVER_TPS, 20) \
-X(int, ENTITY_SYNC_RADIUS_X, 3) \
-X(int, ENTITY_SYNC_RADIUS_Y, 2) \
+X(int, ENTITY_SYNC_RADIUS_X, 2) \
+X(int, ENTITY_SYNC_RADIUS_Y, 1) \
 X(float, CAMERA_ALPHA, 0.05f) \
 X_ARRAY(char, playerId, 16, "Drantiss") \
 X_ARRAY(std::uint8_t, playerUUID, 16, {0}) \
@@ -25,6 +25,7 @@ X(int, playerType, static_cast<int>(EntityTypeID::SMALL_YELLOW)) \
 X_ARRAY(float, playerSize, static_cast<unsigned long long>(EntityTypeID::COUNT), INIT_PLAYER_SIZE) \
 X_ARRAY(float, playerHP, static_cast<unsigned long long>(EntityTypeID::COUNT), INIT_PLAYER_HP) \
 X_ARRAY(float, playerFP, static_cast<unsigned long long>(EntityTypeID::COUNT), INIT_PLAYER_FP) \
+X_ARRAY(int, skillLevel, static_cast<unsigned long long>(EntityTypeID::COUNT) * 4, {0}) \
 X_ARRAY(char, SERVER_IP, 16, "127.0.0.1") \
 X(int, SERVER_PORT, 51015)
 enum ColliderType {
@@ -38,6 +39,9 @@ public:
     static void saveSettings();
     static void resetSettings();
     static void applySettings();    //variables to specific settings
+    static int getSkillLevel(int index) {
+        return skillLevel[static_cast<unsigned long long>(playerType) * 4 + index];
+    }
 #define X(type, name, default_val) inline static type name = default_val;
 #define X_ARRAY(type, name, size, default_val) inline static type name[size] = default_val;
     GAMEDATA_CONFIG_ENTRIES

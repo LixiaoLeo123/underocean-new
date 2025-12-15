@@ -11,6 +11,7 @@
 #include <string>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Shader.hpp>
 
 class ResourceManager {
 public:
@@ -51,6 +52,16 @@ public:
         disableFontSmooth(font);
         return fonts_[fullPath];
     }
+    static sf::Shader& getShader(const std::string& name) {
+        auto fullPath = makeAssetPath(name);
+        if (auto it = shaders_.find(fullPath); it != shaders_.end())
+            return it->second;
+        std::scoped_lock lock(resourceMutex_);
+        if (!shaders_[fullPath].loadFromFile(fullPath, sf::Shader::Fragment)) {
+            assert(false && "Shader file not found!");
+        }
+        return shaders_[fullPath];
+    }
 private:
     inline static bool hasPreLoaded_ { false };
     static std::vector<sf::Uint8> readFileBytes(const std::string& path) {
@@ -86,6 +97,7 @@ private:
     inline static std::unordered_map<std::string, std::unique_ptr<sf::Texture>> textures_;
     inline static std::map<std::string, sf::Font> fonts_;
     inline static std::map<std::string, std::vector<sf::Uint8>> fontsData_;
+    inline static std::map<std::string, sf::Shader> shaders_;
 };
 inline void ResourceManager::preload() {
     ResourceManager::getFont("fonts/font4.ttf");  //for flash screen
@@ -104,6 +116,9 @@ inline void ResourceManager::preload() {
             }
             else if (ext == ".ttf" || ext == ".otf") {
                 getFont(relPath);
+            }
+            else if (ext == ".frag") {
+                getShader(relPath);
             }
         }
         hasPreLoaded_ = true;

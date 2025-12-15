@@ -8,6 +8,7 @@
 #include "server/new/levels/Level0.h"
 #include "server/new/levels/Level1.h"
 #include "server/new/system/DerivedAttributeSystem.h"
+#include "server/new/system/SkillSystem.h"
 
 GameServer::GameServer(){
     if (!networkDriver_.listen(GameData::SERVER_PORT)) {
@@ -48,10 +49,16 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
             it->second.initFP = ntolFP(reader.nextUInt16());
         }
         //and...
+        SkillIndices skillIndices = SkillSystem::getSkillIndices(it->second.type);
+        std::uint8_t* skillIndicesArray = skillIndices.skillIndices;
         writer_.writeInt16(ltonHP16(DerivedAttributeSystem::calcMaxHP(it->second.type, it->second.size)))
             .writeInt16(ltonFP(DerivedAttributeSystem::calcMaxFP(it->second.type, it->second.size)))
             .writeInt16(ltonVec(DerivedAttributeSystem::calcMaxVec(it->second.type)))
-            .writeInt16(ltonAcc(DerivedAttributeSystem::calcMaxAcc(it->second.type, it->second.size)));
+            .writeInt16(ltonAcc(DerivedAttributeSystem::calcMaxAcc(it->second.type, it->second.size)))
+            .writeInt8(skillIndicesArray[0])
+            .writeInt8(skillIndicesArray[1])
+            .writeInt8(skillIndicesArray[2])
+            .writeInt8(skillIndicesArray[3]);
         networkDriver_.send(writer_.takePacket(), peer, 0, ClientTypes::PacketType::PKG_FINISH_LOGIN, true);
         writer_.clearBuffer();
         it->second.hasLogin = true;   //finish

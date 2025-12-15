@@ -43,6 +43,9 @@ void GameData::initSettings() {
     playerFP[static_cast<unsigned long long>(EntityTypeID::type)] = ParamTable<EntityTypeID::type>::FP_BASE;
     PLAYER_ENTITY_TYPES
 #undef X
+    for (int i = 0; i < static_cast<int>(EntityTypeID::COUNT); ++i) {
+        skillLevel[i * 4] = 1;  //skill 0 default is unlocked
+    }
     UUIDv4 temp = Uuid::generate();
     for (int i = 0; i < 16; ++i) {
         playerUUID[i] = temp[i];

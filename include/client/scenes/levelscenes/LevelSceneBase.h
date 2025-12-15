@@ -8,6 +8,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 
 #include "PlayerStatus.h"
+#include "SkillBar.h"
 #include "client/common/ChatBox.h"
 #include "client/common/InputManager.h"
 #include "client/common/IScene.h"
@@ -21,32 +22,13 @@
 
 class LevelSceneBase : public IScene{
 public:
-    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
-        :driver_(driver), playerAttributes_(playerAttributes), chatBox_(chatBox) {
-        player.setType(static_cast<EntityTypeID>(GameData::playerType));
-        player.setSize(GameData::playerSize[GameData::playerType]);
-        player.setMaxVec(playerAttributes.maxVec);
-        player.setMaxAcc(playerAttributes.maxAcc);
-        playerStatus_.setMaxHP(playerAttributes.maxHP);
-        playerStatus_.setMaxFP(playerAttributes.maxFP);
-        playerStatus_.setHP(GameData::playerHP[GameData::playerType]);
-        playerStatus_.setFP(GameData::playerFP[GameData::playerType]);
-        // get max Acc when mouse is at the left or right side of the view
-        accDisRatio_ = player.getMaxAcceleration() * 2 / VIEW_WIDTH;
-        // send level change packet
-    };
+    explicit LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver,
+        ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox);
     void render(sf::RenderWindow& window) override;
     void handleEvent(const sf::Event &event) override;
     void resetViewSize(unsigned windowWidth, unsigned windowHeight);
     void correctView();  //keep view inside map size
     void update(float dt) override;
-    void handleEntityStaticData();
-    void handleEntityLeave();
-    void handleEntityDynamic();
-    void handlePlayerStateUpdate();  //fp, hp
-    void handleEntitySizeChange();
-    void handlePlayerAttributesUpdate();  //max hp, max fp, max vel, max acc
-    void handleMessagePacket();
     [[nodiscard]] unsigned getCurrentTick() const { return currentTick_; }
     virtual UVector getMapSize() = 0;
     virtual std::uint16_t ltonX(float x) = 0;  //local to net x
@@ -59,9 +41,16 @@ protected:
     bool viewInit_ { false };  //not init
     std::shared_ptr<ChatBox> chatBox_;
     ClientCommonPlayerAttributes& playerAttributes_;
+    void handleEntityStaticData();
+    void handleEntityLeave();
+    void handleEntityDynamic();
+    void handlePlayerStateUpdate();  //fp, hp
+    void handleEntitySizeChange();
+    void handlePlayerAttributesUpdate();  //max hp, max fp, max vel, max acc
+    void handleMessagePacket();
 private:
-    constexpr static float VIEW_WIDTH = 80.f;
-    constexpr static float VIEW_HEIGHT = 45.f;
+    constexpr static float VIEW_WIDTH = 800.f;
+    constexpr static float VIEW_HEIGHT = 450.f;
     float accDisRatio_ { -1.f };
     PlayerStatus playerStatus_ {};  //HP and FP indicator
 protected:
@@ -69,6 +58,7 @@ protected:
     PlayerEntity player;
     std::shared_ptr<ClientNetworkDriver> driver_;  //given by LevelSelectMenu
     PacketWriter writer_;  //reuse
+    SkillBar skillBar_;
     unsigned currentTick_ { 0 };
 };
 inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight) {
@@ -91,6 +81,7 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
         playerStatus_.onWindowSizeChange(event.size.width, event.size.height);
     }
     chatBox_->handleEvent(event);
+    skillBar_.handleEvent(event);
 }
 inline void LevelSceneBase::correctView() {
     if (view_.getCenter().x < view_.getSize().x / 2)

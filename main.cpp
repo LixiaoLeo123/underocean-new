@@ -7,7 +7,7 @@
 #include "common/utils/Random.h"
 #include "server/GameServer.h"
 #include "server/core(deprecate)/GameData.h"
-//#define SERVER_ENV
+#define SERVER_ENV
 void startNetServer();
 void showAnnoyingDog();
 int main() {
@@ -21,7 +21,7 @@ int main() {
     server.run();
 #else
     ResourceManager::preload();
-    startNetServer();
+    //startNetServer();
     GameClient client;
     client.run();
 #endif

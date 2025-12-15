@@ -1,5 +1,25 @@
 #include "client/scenes/levelscenes/LevelSceneBase.h"
 
+LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver,
+    ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
+        :driver_(driver), playerAttributes_(playerAttributes), chatBox_(chatBox) {
+    player.setType(static_cast<EntityTypeID>(GameData::playerType));
+    player.setSize(GameData::playerSize[GameData::playerType]);
+    player.setMaxVec(playerAttributes.maxVec);
+    player.setMaxAcc(playerAttributes.maxAcc);
+    playerStatus_.setMaxHP(playerAttributes.maxHP);
+    playerStatus_.setMaxFP(playerAttributes.maxFP);
+    playerStatus_.setHP(GameData::playerHP[GameData::playerType]);
+    playerStatus_.setFP(GameData::playerFP[GameData::playerType]);
+    // get max Acc when mouse is at the left or right side of the view
+    accDisRatio_ = player.getMaxAcceleration() * 2 / VIEW_WIDTH;
+    skillBar_.setSkills(playerAttributes_.skillIndices);
+    for (int i = 0; i < 4; ++i) {
+        if (GameData::getSkillLevel(i)) {
+            skillBar_.setSkillUnlocked(i, true);
+        }
+    }
+}
 void LevelSceneBase::handlePlayerStateUpdate() {
     while (auto packet = driver_->popPacket(PacketType::PKT_PLAYER_STATE_UPDATE)) {
         if (driver_->hasPacket(PKT_PLAYER_STATE_UPDATE)) continue;  //only handle latest packet
@@ -28,6 +48,7 @@ void LevelSceneBase::render(sf::RenderWindow &window) {
     //render player status UI
     playerStatus_.render(window);
     chatBox_->render(window);
+    skillBar_.render(window);
 }
 void LevelSceneBase::handleEntityStaticData() {
     while (auto packet = driver_->popPacket(PacketType::PKT_ENTITY_STATIC_DATA)) {
@@ -139,9 +160,12 @@ void LevelSceneBase::update(float dt) {
     view_.move(GameData::CAMERA_ALPHA * (player.getPosition() - view_.getCenter()));
     correctView();
     //send player pos packet to server
-    writer_.writeInt16(ltonX(player.getPosition().x))
-        .writeInt16(ltonY(player.getPosition().y));
-    driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_TRANSFORM, false);
-    writer_.clearBuffer();
+    if (currentTick_ % TICKS_PER_PLAYER_TRANSFORM_UPLOAD == 0) {
+        writer_.writeInt16(ltonX(player.getPosition().x))
+           .writeInt16(ltonY(player.getPosition().y));
+        driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_TRANSFORM, false);
+        writer_.clearBuffer();
+    }
     chatBox_->update(dt);
+    skillBar_.update();
 }

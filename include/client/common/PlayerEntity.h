@@ -51,6 +51,7 @@ private:
     float maxVelocity_ { 0.f };
     float mapWidth_ { 0.f };
     float mapHeight_ { 0.f };
+    bool isFlipped{false};
     void adjustPosInBorder() {   //keep in border
         if (position_.x < 0.f) {
             position_.x = 0.f;
@@ -119,7 +120,20 @@ inline void PlayerEntity::updateAngle() {
     while (delta > 180.f) delta -= 360.f;
     while (delta < -180.f) delta += 360.f;
     constexpr float alpha = 0.4f;  //less is smoother
-    sprite_.setRotation(current + delta * alpha);
+    float newRot = current + delta * alpha;
+    sprite_.setRotation(newRot);
+    bool shouldFlip = newRot >= 90.f && newRot <= 270.f || newRot <= -90.f && newRot >= -270.f;
+    if (shouldFlip && !isFlipped) {
+        isFlipped = true;
+        sf::Vector2f scale = sprite_.getScale();
+        scale.y = -abs(scale.y);
+        sprite_.setScale(scale);
+    } else if (!shouldFlip && isFlipped) {
+        isFlipped = false;
+        sf::Vector2f scale = sprite_.getScale();
+        scale.y = abs(scale.y);
+        sprite_.setScale(scale);
+    }
 }
 inline void PlayerEntity::updateAnim(float dt) {
     // update the frame of sprite texture

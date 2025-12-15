@@ -45,6 +45,10 @@ struct GridResource {
     void setOnAOI(float x, float y) {   //set chunk include this pos isAOI = true (regarding GameData::ENTITY_SYNC_RADIUS)
         int originC = static_cast<int>(x / cellWidth_);
         int originR = static_cast<int>(y / cellHeight_);
+        if (originC - GameData::ENTITY_SYNC_RADIUS_X < -1) originC = -1 + GameData::ENTITY_SYNC_RADIUS_X;
+        else if (originC + GameData::ENTITY_SYNC_RADIUS_X > cols_) originC = cols_ - GameData::ENTITY_SYNC_RADIUS_X;
+        if (originR - GameData::ENTITY_SYNC_RADIUS_Y < -1) originR = -1 + GameData::ENTITY_SYNC_RADIUS_Y;
+        else if (originR + GameData::ENTITY_SYNC_RADIUS_Y > rows_) originR = rows_ - GameData::ENTITY_SYNC_RADIUS_Y;
         for (int dc = -GameData::ENTITY_SYNC_RADIUS_X; dc <= GameData::ENTITY_SYNC_RADIUS_X; ++dc) {
             for (int dr = -GameData::ENTITY_SYNC_RADIUS_Y; dr <= GameData::ENTITY_SYNC_RADIUS_Y; ++dr) {
                 int c = originC + dc;

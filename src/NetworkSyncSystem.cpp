@@ -16,9 +16,14 @@ void NetworkSyncSystem::update(float dt) {
         aoi.current.reset();
         aoi.enterList.clear();
         aoi.leaveList.clear();
+        aoi.dynamicList.clear();
         const auto& transform = coord_.getComponent<Transform>(peerEntity);
         int row = static_cast<int>(transform.y / grid.cellHeight_);
         int col = static_cast<int>(transform.x / grid.cellWidth_);
+        if (col - GameData::ENTITY_SYNC_RADIUS_X < -1) col = -1 + GameData::ENTITY_SYNC_RADIUS_X;
+        else if (col + GameData::ENTITY_SYNC_RADIUS_X > grid.cols_) col = grid.cols_ - GameData::ENTITY_SYNC_RADIUS_X;
+        if (row - GameData::ENTITY_SYNC_RADIUS_Y < -1) row = -1 + GameData::ENTITY_SYNC_RADIUS_Y;
+        else if (row + GameData::ENTITY_SYNC_RADIUS_Y > grid.rows_) row = grid.rows_ - GameData::ENTITY_SYNC_RADIUS_Y;  //if player on border, adjust area
         for (int dc = -GameData::ENTITY_SYNC_RADIUS_X; dc <= GameData::ENTITY_SYNC_RADIUS_X; ++dc) {   //update visible entities
             for (int dr = -GameData::ENTITY_SYNC_RADIUS_Y; dr <= GameData::ENTITY_SYNC_RADIUS_Y; ++dr) {
                 int r = row + dr;

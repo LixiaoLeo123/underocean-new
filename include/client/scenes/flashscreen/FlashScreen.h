@@ -4,6 +4,7 @@
 
 #ifndef UNDEROCEAN_FLASHSCREEN_H
 #define UNDEROCEAN_FLASHSCREEN_H
+#include "LoadingIndicator.h"
 #include "../NameScene/NameScene.h"
 #include "client/common/IScene.h"
 #include "client/common/KeyBindingManager.h"
@@ -29,7 +30,12 @@ public:
         skipTip_->setBounds(sf::Vector2f((window.getSize().x - skipTipSize.x) / 2.f, window.getSize().y * 0.7f),
             skipTipSize);
         skipTip_->setVisible(false);
+        loadingIndicator_ = std::make_shared<LoadingIndicator>();
+        loadingIndicator_->setBounds(sf::Vector2f((window.getSize().x) / 2.f, window.getSize().y * 0.73f),
+            skipTipSize * 0.2f);  //same as skip tip to keep smooth
+        loadingIndicator_->setVisible(false);
         panel_.add(skipTip_);
+        panel_.add(loadingIndicator_);
         view_.setCenter(panel_.getCenter());
         view_.setSize(panel_.getSize());
     }
@@ -72,28 +78,36 @@ public:
         if (float time = clock_.getElapsedTime().asSeconds(); time > blackScreenDelay) {
             state_ = ShowTitle;
             title_->setVisible(true);
-            if (ResourceManager::hasPreloaded()) {
-                state_ = Skip;
-                skipTip_->setVisible(true);
+            if (time > loadingDelay) {
+                state_ = Loading;
+                loadingIndicator_->setVisible(true);
+                if (ResourceManager::hasPreloaded()) {
+                    loadingIndicator_->setVisible(false);
+                    state_ = Skip;
+                    skipTip_->setVisible(true);
+                }
             }
         }
         title_->updateTotal(dt);
+        if (state_ == Loading) loadingIndicator_->update(dt);
     }
     //bool shouldUpdateWhenNotActive() override { return true; }
 private:
     enum State {
         BlackScreen,
         ShowTitle,
+        Loading,
         Skip
     };
     std::shared_ptr<SmoothTextLabel> title_;
     std::shared_ptr<TextLabel> skipTip_;
+    std::shared_ptr<LoadingIndicator> loadingIndicator_ {};
     sf::Clock clock_;
     sf::View view_;
     bool viewDirty_{false};
     Panel panel_;
     State state_{BlackScreen};
     static constexpr float blackScreenDelay = 1.5f;   //on start
-    static constexpr float skipDelay = 3.f;    //press enter or z to continue
+    static constexpr float loadingDelay = 3.f;    //show loading anim
 };
 #endif //UNDEROCEAN_FLASHSCREEN_H

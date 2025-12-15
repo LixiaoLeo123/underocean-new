@@ -39,6 +39,7 @@ add_executable(Underocean
         src/PlayerStatus.cpp
         src/Integrity.cpp
         src/ChatBox.cpp
+        src/SkillBar.cpp
 )
 
 

@@ -98,12 +98,16 @@ void LevelSelectMenu::reloadUI() {
 }
 void LevelSelectMenu::handleFinishLoginPacket() {
     if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
-        if (packet->size() != 8) return;
+        if (packet->size() != 12) return;
         PacketReader reader(std::move(*packet));
         playerAttributes_.maxHP = ntolHP16(reader.nextUInt16());
         playerAttributes_.maxFP = ntolFP(reader.nextUInt16());
         playerAttributes_.maxVec = ntolVec(reader.nextUInt16());
         playerAttributes_.maxAcc = ntolAcc(reader.nextUInt16());
+        playerAttributes_.skillIndices[0] = reader.nextUInt8();
+        playerAttributes_.skillIndices[1] = reader.nextUInt8();
+        playerAttributes_.skillIndices[2] = reader.nextUInt8();
+        playerAttributes_.skillIndices[3] = reader.nextUInt8();
         statusIndicator_.setStateConnected();
         hasLogin = true;
     }

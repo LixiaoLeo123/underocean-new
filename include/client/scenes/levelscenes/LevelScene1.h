@@ -53,8 +53,8 @@ public:
     UVector getMapSize() override { return MAP_SIZE; };
 private:
     static constexpr UVector MAP_SIZE{1024.f, 192.f };  //decided by bg
-    static constexpr int CHUNK_ROWS = 16;   //about 50 x 50 px
-    static constexpr int CHUNK_COLS = 26;   //no chunk update needed on client, but for net pos convert
+    static constexpr int CHUNK_ROWS = 6;   //about 50 x 50 px
+    static constexpr int CHUNK_COLS = 32;   //no chunk update needed on client, but for net pos convert
     enum class State {
         ANIMATION,
         GAMING
