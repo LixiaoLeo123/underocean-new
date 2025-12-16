@@ -38,7 +38,7 @@ public:
     GameServer(const GameServer&) = delete;
     GameServer& operator=(const GameServer&) = delete;
     std::unordered_map<ENetPeer*, PlayerData> playerList_;
-    std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<NamedPacket>>> buffer_;  //maybe only for actions
+    std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<Packet>>> buffer_;  //maybe only for actions
     PacketWriter writer_ {};  //reuse
     [[nodiscard]] PacketWriter& getPacketWriter() { return writer; }
     void update(float dt) {
@@ -108,7 +108,7 @@ inline void GameServer::handleLevelChangePacket() {
         levels_[it->second.currentLevel]->onPlayerLeave(playerList_[it->second.peer]);
         it->second.currentLevel = to;
         levels_[to]->onPlayerJoin(playerList_[it->second.peer]);
-        buffer_[peer] = std::queue<std::unique_ptr<NamedPacket>>{}; //clear buffer
+        buffer_[peer] = std::queue<std::unique_ptr<Packet>>{}; //clear buffer
     }
 }
 inline void GameServer::handleMessagePacket() {  //only distribute, broadcast
@@ -148,7 +148,7 @@ inline void GameServer::handleActionPacket() {
         auto it = playerList_.find(peer);
         if (it == playerList_.end()) continue;  //dont exist
         if (buffer_[peer].size() >= SERVER_MAX_BUFFER_SIZE) buffer_[peer].pop();
-        buffer_[peer].push(std::move(namedPacket));
+        buffer_[peer].push(std::make_unique<Packet>(std::move(namedPacket->packet)));
     }
 }
 #endif //UNDEROCEAN_STATEMANAGER_H

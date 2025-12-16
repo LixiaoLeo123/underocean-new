@@ -9,13 +9,19 @@
 #include "client/common/ResourceManager.h"
 #include <SFML/Window/Event.hpp>
 
+#include "client/common/KeyBindingManager.h"
+#include "common/net(depricate)/PacketWriter.h"
+#include "common/network/ClientNetworkDriver.h"
+
+class PacketWriter;
+
 namespace sf {
     class RenderWindow;
 }
 
 class SkillBar {
 public:
-    SkillBar();
+    explicit SkillBar(ClientNetworkDriver& driver);
     void setSkillUnlocked(int index, bool unlocked);
     void setSkills(const std::uint8_t* skillIndices);  //different entity types have different skill icons
     void render(sf::RenderWindow& window);
@@ -34,7 +40,10 @@ private:
     static constexpr float SKILL_HEIGHT = 3.f;
     constexpr static float SKILL_ACTIVE_SCALE = SKILL_WIDTH / FRAME_WIDTH;
     constexpr static float SKILL_INACTIVE_SCALE = SKILL_ACTIVE_SCALE * BORDER_WIDTH / FRAME_WIDTH;
+    ClientNetworkDriver& driver_; //to send packet
+    PacketWriter writer_;  //reuse
     float windowRatio_{-1.f};  //height / width, -1.f for not init
+    int skillIndices_[4] {0, 0, 0, 0};  //only for render
     int totalUnlockedSkills_{0};
     sf::View uiView_ {};
     sf::Sprite skills_;
@@ -46,6 +55,8 @@ private:
     bool isSkillColorful_[4]{};
     float skillScales_[4] {SKILL_INACTIVE_SCALE, SKILL_INACTIVE_SCALE, SKILL_INACTIVE_SCALE, SKILL_INACTIVE_SCALE};  //for stimulate anim
     sf::IntRect skillRects_[4];
+    bool isKeyPressedLastFrame_[4] {false, false, false, false};
+    void sendTryCastSkillPacket(int index);  //notify server
     void onWindowSizeChange(unsigned newWidth, unsigned newHeight) {
         float windowRatio = static_cast<float>(newHeight) / static_cast<float>(newWidth);
         uiView_.setSize(UI_VIEW_WIDTH, UI_VIEW_WIDTH * windowRatio);
@@ -72,11 +83,6 @@ inline void SkillBar::update() {
         }
     }
 }
-inline void SkillBar::handleEvent(const sf::Event& event) {
-    if (event.type == sf::Event::Resized) {
-        onWindowSizeChange(event.size.width, event.size.height);
-    }
-}
 inline void SkillBar::setSkillActive(int index, bool active) {
     assert(!(index < 0 || index >=4));
     if (isSkillActive_[index] != active) {
@@ -95,6 +101,7 @@ inline void SkillBar::setSkills(const std::uint8_t* skillIndices) {  //different
             FRAME_HEIGHT * (skillIndices[i] / 8),
             FRAME_WIDTH,
             FRAME_HEIGHT);
+        skillIndices_[i] = skillIndices[i];
     }
 }
 inline void SkillBar::setSkillColorful(int index, bool isColorful) {

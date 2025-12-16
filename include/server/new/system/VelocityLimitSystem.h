@@ -30,7 +30,7 @@ public:
                 float maxVelocity = coord.getComponent<MaxVelocity>(entity).maxVelocity;
                 auto &vel = coord.getComponent<Velocity>(entity);
                 float speed2 = vel.vx * vel.vx + vel.vy * vel.vy;
-                if (speed2 > maxVelocity * maxVelocity && speed2 > 0.0f) {
+                if (speed2 > maxVelocity * maxVelocity * 1.01f && speed2 > 0.0f) {
                     float ratio = maxVelocity / std::sqrt(speed2);
                     vel.vx *= ratio;
                     vel.vy *= ratio;

@@ -6,6 +6,49 @@
 #include "server/new/LevelBase.h"
 #include "server/new/resources/GridResource.h"
 
+NetworkSyncSystem::NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
+    : coord_(coordinator), server_(server), level_(level) {
+    {
+        signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
+        signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
+        coord_.registerSystem(signature_);
+    }
+    eventbus.subscribe<EntitySizeChangeEvent>([this](const EntitySizeChangeEvent &event) {
+        this->onEntitySizeChange(event);
+    });
+    eventbus.subscribe<EntityHPChangeEvent>([this](const EntityHPChangeEvent &event) {
+        this->onEntityHPChange(event);
+    });
+    eventbus.subscribe<PlayerLeaveEvent>([this](const PlayerLeaveEvent &event) {
+        this->onPlayerLeave(event);
+    });
+    eventbus.subscribe<PlayerJoinEvent>([this](const PlayerJoinEvent &event) {
+        this->onPlayerJoin(event);
+    });
+    eventbus.subscribe<ClientCommonPlayerAttributesChangeEvent>(
+        [this](const ClientCommonPlayerAttributesChangeEvent &event) {
+            this->onClientCommonPlayerAttributesChange(event);
+        });
+    eventbus.subscribe<PlayerDashEvent>([this](const PlayerDashEvent &event) {
+        this->onPlayerDash(event);
+    });
+    eventbus.subscribe<SkillReadyEvent>([this](const SkillReadyEvent &event) {
+        this->onSkillReady(event);
+    });
+    eventbus.subscribe<SkillApplyEvent>([this](const SkillApplyEvent &event) {
+        this->onSkillApplied(event);
+    });
+    eventbus.subscribe<SkillEndEvent>([this](const SkillEndEvent &event) {
+        this->onSkillEnd(event);
+    });
+    {
+        aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
+        aoiSignature_.set(Coordinator::getComponentTypeID<Transform>(), true);
+        aoiSignature_.set(Coordinator::getComponentTypeID<Size>(), true);
+        aoiSignature_.set(Coordinator::getComponentTypeID<NetSyncComp>(), true);
+        coord_.registerSystem(aoiSignature_);
+    }
+}
 void NetworkSyncSystem::update(float dt) {
     auto& grid = coord_.ctx<GridResource>();
     auto& peerEntities = coord_.getEntitiesWith(signature_);

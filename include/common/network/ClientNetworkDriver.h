@@ -9,6 +9,8 @@
 #include <queue>
 #include <string>
 #include <functional>
+#include <SFML/System/Clock.hpp>
+
 #include "common/Types.h"
 #include "common/net(depricate)/enet.h"
 using namespace ClientTypes;

@@ -45,6 +45,10 @@ void GameData::initSettings() {
 #undef X
     for (int i = 0; i < static_cast<int>(EntityTypeID::COUNT); ++i) {
         skillLevel[i * 4] = 1;  //skill 0 default is unlocked
+        skillLevel[i * 4 + 1] = 1;  //skill 0 default is unlocked
+        skillLevel[i * 4 + 2] = 1;  //skill 0 default is unlocked
+        skillLevel[i * 4 + 3] = 1;  //skill 0 default is unlocked
+        //TODO: adjust default skill levels per fish type
     }
     UUIDv4 temp = Uuid::generate();
     for (int i = 0; i < 16; ++i) {

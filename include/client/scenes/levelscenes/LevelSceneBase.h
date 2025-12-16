@@ -48,9 +48,11 @@ protected:
     void handleEntitySizeChange();
     void handlePlayerAttributesUpdate();  //max hp, max fp, max vel, max acc
     void handleMessagePacket();
+    void handlePlayerDash();
+    void handleSkillPackets();  //including skill ready, skill end and skill apply
 private:
-    constexpr static float VIEW_WIDTH = 800.f;
-    constexpr static float VIEW_HEIGHT = 450.f;
+    constexpr static float VIEW_WIDTH = 80.f;
+    constexpr static float VIEW_HEIGHT = 45.f;
     float accDisRatio_ { -1.f };
     PlayerStatus playerStatus_ {};  //HP and FP indicator
 protected:
@@ -81,7 +83,8 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
         playerStatus_.onWindowSizeChange(event.size.width, event.size.height);
     }
     chatBox_->handleEvent(event);
-    skillBar_.handleEvent(event);
+    if (!chatBox_->isOpen())
+        skillBar_.handleEvent(event);
 }
 inline void LevelSceneBase::correctView() {
     if (view_.getCenter().x < view_.getSize().x / 2)

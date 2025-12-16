@@ -294,6 +294,7 @@ void ChatBox::handleEvent(const sf::Event& event) {
                 driver_.send(packetWriter_.takePacket(), 1, ServerTypes::PacketType::PKT_MESSAGE, true);
                 packetWriter_.clearBuffer();
                 inputBuffer_.clear();
+                close();
             }
         } else if (event.text.unicode >= 32 && event.text.unicode < 128 && inputBuffer_.size() < MAX_MESSAGE_CHARACTER) {
             inputBuffer_ += static_cast<char>(event.text.unicode);

@@ -19,9 +19,7 @@ public:
     bool mousePressedLeft{false};
     bool mousePressedRight{false};
     std::unordered_map<sf::Keyboard::Key, bool> keyDown;
-    InputManager() {
-        watchKey(sf::Keyboard::Space);
-    }
+    InputManager() = default;
     static InputManager& getInstance() {
         static InputManager instance;
         return instance;

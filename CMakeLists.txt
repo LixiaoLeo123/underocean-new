@@ -40,6 +40,7 @@ add_executable(Underocean
         src/Integrity.cpp
         src/ChatBox.cpp
         src/SkillBar.cpp
+        src/SkillSystem.cpp
 )
 
 

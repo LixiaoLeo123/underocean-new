@@ -175,6 +175,9 @@ void LevelSelectMenu::sendLoginPacket() {
         .writeInt16(ltonSize16(GameData::playerSize[GameData::playerType]))
         .writeInt16(ltonHP16(GameData::playerHP[GameData::playerType]))
         .writeInt16(ltonFP(GameData::playerFP[GameData::playerType]));
+    for (int i = 0; i < 4; ++i) {
+        writer_.writeInt8(static_cast<std::uint8_t>(GameData::getSkillLevel(i)));
+    }
     networkDriver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LOGIN, true);
     writer_.clearBuffer();
 }

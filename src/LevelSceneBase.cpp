@@ -2,7 +2,7 @@
 
 LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& driver,
     ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
-        :driver_(driver), playerAttributes_(playerAttributes), chatBox_(chatBox) {
+    : driver_(driver), skillBar_(*driver), playerAttributes_(playerAttributes), chatBox_(chatBox) {
     player.setType(static_cast<EntityTypeID>(GameData::playerType));
     player.setSize(GameData::playerSize[GameData::playerType]);
     player.setMaxVec(playerAttributes.maxVec);
@@ -12,7 +12,7 @@ LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& drive
     playerStatus_.setHP(GameData::playerHP[GameData::playerType]);
     playerStatus_.setFP(GameData::playerFP[GameData::playerType]);
     // get max Acc when mouse is at the left or right side of the view
-    accDisRatio_ = player.getMaxAcceleration() * 2 / VIEW_WIDTH;
+    accDisRatio_ = player.getMaxAcceleration() * 5 / VIEW_WIDTH;
     skillBar_.setSkills(playerAttributes_.skillIndices);
     for (int i = 0; i < 4; ++i) {
         if (GameData::getSkillLevel(i)) {
@@ -20,6 +20,7 @@ LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& drive
         }
     }
 }
+
 void LevelSceneBase::handlePlayerStateUpdate() {
     while (auto packet = driver_->popPacket(PacketType::PKT_PLAYER_STATE_UPDATE)) {
         if (driver_->hasPacket(PKT_PLAYER_STATE_UPDATE)) continue;  //only handle latest packet
@@ -132,6 +133,37 @@ void LevelSceneBase::handleMessagePacket() {
         chatBox_->addMessage(message);
     }
 }
+void LevelSceneBase::handlePlayerDash() {
+    while (auto packet = driver_->popPacket(ClientTypes::PacketType::PKT_PLAYER_DASH)) {
+        PacketReader reader(std::move(*packet));
+        std::uint16_t netDashVel = reader.nextUInt16();
+        float dashVel = ntolVec(netDashVel);
+        player.dash(dashVel);
+    }
+}
+void LevelSceneBase::handleSkillPackets() {
+    while (auto packet = driver_->popPacket(ClientTypes::PacketType::PKT_SKILL_APPLIED)) {
+        PacketReader reader(std::move(*packet));
+        std::uint8_t relativeSkillIndex = reader.nextUInt8();
+        if (relativeSkillIndex > 3) continue;  //bad packet
+        skillBar_.setSkillActive(relativeSkillIndex, true);
+        skillBar_.setSkillColorful(relativeSkillIndex, true);
+    }
+    while (auto packet = driver_->popPacket(ClientTypes::PacketType::PKT_SKILL_END)) {
+        PacketReader reader(std::move(*packet));
+        std::uint8_t relativeSkillIndex = reader.nextUInt8();
+        if (relativeSkillIndex > 3) continue;  //bad packet
+        skillBar_.setSkillActive(relativeSkillIndex, false);
+        skillBar_.setSkillColorful(relativeSkillIndex, false);
+    }
+    while (auto packet = driver_->popPacket(ClientTypes::PacketType::PKT_SKILL_READY)) {
+        PacketReader reader(std::move(*packet));
+        std::uint8_t relativeSkillIndex = reader.nextUInt8();
+        if (relativeSkillIndex > 3) continue;  //bad packet
+        skillBar_.setSkillActive(relativeSkillIndex, false);
+        skillBar_.setSkillColorful(relativeSkillIndex, true);
+    }
+}
 void LevelSceneBase::update(float dt) {
     ++currentTick_;
     driver_->pollPacket();
@@ -142,6 +174,8 @@ void LevelSceneBase::update(float dt) {
     handleEntityDynamic();
     handleEntitySizeChange();
     handleMessagePacket();
+    handlePlayerDash();
+    handleSkillPackets();
     for (auto& pair : entities_) {
         pair.second.update(dt);
     }
@@ -150,9 +184,6 @@ void LevelSceneBase::update(float dt) {
         sf::Vector2f mouseWorld = InputManager::getInstance().mousePosWorld;
         sf::Vector2f dir = mouseWorld - player.getPosition();
         playerRawAcc = accDisRatio_ * dir;
-    }
-    else {
-        playerRawAcc = -2.f * player.getVelocity();
     }
     player.update(dt, playerRawAcc);
     playerStatus_.update(dt);

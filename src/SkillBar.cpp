@@ -1,8 +1,12 @@
 #include "client/scenes/levelscenes/SkillBar.h"
 
 #include <SFML/Graphics/RenderWindow.hpp>
-SkillBar::SkillBar()
-    :greyShader_(ResourceManager::getShader("shaders/grayscale.frag")) {
+
+#include "common/net(depricate)/PacketWriter.h"
+
+SkillBar::SkillBar(ClientNetworkDriver& driver)
+    :greyShader_(ResourceManager::getShader("shaders/grayscale.frag")),
+    driver_(driver){
     skills_.setTexture(ResourceManager::getTexture("images/icons/skills.png"));
     skills_.setOrigin(FRAME_WIDTH / 2.f, FRAME_HEIGHT / 2.f);
     skills_.setScale(SKILL_ACTIVE_SCALE, SKILL_ACTIVE_SCALE);
@@ -37,4 +41,31 @@ void SkillBar::render(sf::RenderWindow &window) {
         startX += SKILL_WIDTH * ICON_BOX_SCALE;
     }
     window.setView(originalView);
+}
+void SkillBar::handleEvent(const sf::Event& event) {
+    if (event.type == sf::Event::Resized) {
+        onWindowSizeChange(event.size.width, event.size.height);
+    }
+    else if (event.type == sf::Event::KeyPressed) {
+        for (int i = 0; i < 4; ++i) {
+            if (KeyBindingManager::hasAction(static_cast<KeyBindingManager::Action>(KeyBindingManager::Action::Skill0 + i), event)) {
+                if (!isKeyPressedLastFrame_[i] && isSkillUnlocked_[i]) {
+                    sendTryCastSkillPacket(i);
+                    isKeyPressedLastFrame_[i] = true;
+                }
+            }
+        }
+    }
+    else if (event.type == sf::Event::KeyReleased) {
+        for (int i = 0; i < 4; ++i) {
+            if (KeyBindingManager::hasAction(static_cast<KeyBindingManager::Action>(KeyBindingManager::Action::Skill0 + i), event)) {
+                isKeyPressedLastFrame_[i] = false;
+            }
+        }
+    }
+}
+void SkillBar::sendTryCastSkillPacket(int index) {
+    writer_.writeInt8(static_cast<std::int8_t>(index));  //skill index
+    driver_.send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_ACTION, true);
+    writer_.clearBuffer();
 }

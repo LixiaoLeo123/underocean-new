@@ -10,6 +10,7 @@
 #include "server/new/system/BoundaryCullingSystem.h"
 #include "server/new/system/DerivedAttributeSystem.h"
 #include "server/new/system/GridBuildSystem.h"
+#include "server/new/system/SkillSystem.h"
 #include "server/new/system/VelocityLimitSystem.h"
 
 void Level1::initialize() {
@@ -18,6 +19,7 @@ void Level1::initialize() {
     emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this, eventBus_);
     emplaceSystem<GridBuildSystem>(coordinator_);
     emplaceSystem<BoidsSystem>(coordinator_);
+    emplaceSystem<SkillSystem>(server_, coordinator_, eventBus_);
     emplaceSystem<EntityGenerationSystem>(coordinator_, entityFactory_, MAX_ENTITIES);
     emplaceSystem<BoundaryCullingSystem>(coordinator_);
     emplaceSystem<AccelerationLimitSystem>(coordinator_);

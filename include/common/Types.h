@@ -90,9 +90,10 @@ namespace ServerTypes {  //packet that server handle
         PKT_LEVEL_CHANGE = 2,  //1 byte for to
         PKT_MESSAGE = 3,   //size unknown, both server and client use channel 1
         PKT_TRANSFORM = 4,  //for server, 2*2 byte
-        PKT_ACTION = 5,
+        PKT_ACTION = 5,  //for skill and other actions, distinguished by the payload range, reliable
+        //1 byte signed int for skill index(relative 0, 1, 2, 3) or other actions
         PKT_LOGIN = 6,
-        // char[16] playerId; uint8 type; uint16 size, uint16 hp, uint16 fp, total 23 byte
+        // char[16] playerId; uint8 type; uint16 size, uint16 hp, uint16 fp, 4 byte skill level, total 27 byte
         COUNT
     };
 }
@@ -114,7 +115,12 @@ namespace ClientTypes {  //packet that client handle
         //1HP 1FP = 2byte
         PKT_PLAYER_ATTRIBUTES_UPDATE = 6,  //reliable, when max attributes change(including hp, fp, vel, acc)
         //2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
-        PKG_FINISH_LOGIN = 7, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, 4 byte for skill indices, total 12 byte
+        PKT_PLAYER_DASH = 7, //reliable, for dash or other skills that add velocity instantly
+        //2 byte for vel, total 2 byte, dir decided by client
+        PKT_SKILL_APPLIED = 8,  //reliable, when skill is successfully applied, 1 byte for relative skill index(0, 1, 2, 3)
+        PKT_SKILL_READY = 9,  //same
+        PKT_SKILL_END = 10,    //same
+        PKG_FINISH_LOGIN, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, 4 byte for skill indices, total 12 byte
         COUNT
     };
 }
@@ -150,6 +156,7 @@ struct PlayerData {  //related to GameServer::handleLoginPacket(), used by level
     float initHP {0.f};  //from 0.f to 1.f
     float initFP {0.f};
     float size {0.f};  //actually ENTITY_MAX_SIZE / netSize
+    int skillLevels[4] {};
 };
 struct ClientCommonPlayerAttributes {
     float maxHP{0.f};
@@ -181,7 +188,7 @@ inline std::string getLocalString(MsgId id) {  //same
 template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
-    static constexpr float MAX_VELOCITY = 6.f;
+    static constexpr float MAX_VELOCITY = 8.f;
     static constexpr float MAX_FORCE = 60.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 3.f;  //remember changing GameData init
@@ -197,6 +204,7 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SEPARATION_WEIGHT = 450.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
 };
 struct EntitySizeChangeEvent {
     Entity entity;
@@ -222,6 +230,22 @@ struct EntityDeathEvent {
 struct ClientCommonPlayerAttributesChangeEvent {
     ENetPeer* peer{};
     ClientCommonPlayerAttributes newAttributes{};
+};
+struct SkillReadyEvent {
+    ENetPeer* peer;
+    int relativeSkillIndex;  //0, 1, 2, 3
+};
+struct SkillApplyEvent {
+    ENetPeer* peer;
+    int relativeSkillIndex;  //0, 1, 2, 3
+};
+struct SkillEndEvent {
+    ENetPeer* peer;
+    int relativeSkillIndex;  //0, 1, 2, 3
+};
+struct PlayerDashEvent {
+    ENetPeer* peer;
+    float dashVel;  //dir decided by client
 };
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;

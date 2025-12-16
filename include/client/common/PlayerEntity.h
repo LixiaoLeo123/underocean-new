@@ -15,8 +15,14 @@ class PlayerEntity {
 public:
     void setType(EntityTypeID type);
     void setSize(float size);
-    void setMaxVec(float maxVec) { maxVelocity_ = maxVec; }
-    void setMaxAcc(float maxAcc) { maxAcceleration_ = maxAcc; }
+    void setMaxVec(float maxVec) {
+        maxVelocity_ = maxVec;
+        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, RESISTANCE_FORCE_POW_TIMES);
+    }
+    void setMaxAcc(float maxAcc) {
+        maxAcceleration_ = maxAcc;
+        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, RESISTANCE_FORCE_POW_TIMES);
+    }
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
     }
@@ -39,6 +45,9 @@ public:
         mapWidth_ = width;
         mapHeight_ = height;
     }
+    void dash(float dashVel) {
+        dashVel_ = dashVel;
+    }
 private:
     sf::Sprite sprite_;
     int totalFrames_{ -1 };   // decided by type
@@ -51,7 +60,10 @@ private:
     float maxVelocity_ { 0.f };
     float mapWidth_ { 0.f };
     float mapHeight_ { 0.f };
+    float resistanceAccPerVel_{ 0.1f };  //matching MaxVelocity
+    float dashVel_ { -1.f };  //-1.f means no dash
     bool isFlipped{false};
+    static constexpr float RESISTANCE_FORCE_POW_TIMES = 1.f;  //f = k*v^?
     void adjustPosInBorder() {   //keep in border
         if (position_.x < 0.f) {
             position_.x = 0.f;
@@ -105,15 +117,39 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // player entity should have acceleration and velocity, smoothly move to target position
     // max acceleration and max velocity can be got by ParamTable<EntityTypeID>::MAX_FORCE/VELOCITY
     // and camera should follow the player smoothly, using GameData::CAMERA_ALPHA
-    velocity_ += Physics::clampVec(rawAcc, maxAcceleration_) * dt;
-    velocity_ = Physics::clampVec(velocity_, maxVelocity_);
-    position_ += velocity_ * dt * 3.f;
+    sf::Vector2f inputAcc = Physics::clampVec(rawAcc, maxAcceleration_);
+    if (velocity_.x != 0.f || velocity_.y != 0.f) {
+        float currentSpeed = std::sqrt(velocity_.x * velocity_.x + velocity_.y * velocity_.y);
+        float dragMagnitude = resistanceAccPerVel_ * std::pow(currentSpeed, RESISTANCE_FORCE_POW_TIMES) * dt;
+        if (dragMagnitude > currentSpeed) {
+            velocity_ = {0.f, 0.f};
+        } else {
+            float reductionRatio = 1.f - (dragMagnitude / currentSpeed);
+            velocity_ *= reductionRatio;
+        }
+    }
+    velocity_ += inputAcc * dt;
+    if ((rawAcc.x != 0.f || rawAcc.y != 0.f) && dashVel_ > 0.f) {  //dash
+        velocity_ += Physics::makeVec(rawAcc, dashVel_);
+        dashVel_ = -1.f;  //reset dash
+    }
+    constexpr float MIN_SPEED = 0.001f;
+    if (velocity_.x * velocity_.x + velocity_.y * velocity_.y < MIN_SPEED * MIN_SPEED) {
+        if (inputAcc.x == 0.f && inputAcc.y == 0.f) {
+            velocity_ = {0.f, 0.f};
+        }
+    }
+    // velocity_ = {0.7f * maxVelocity_, maxVelocity_ * 0.7f};
+    position_ += velocity_ * dt * 1.6f;  //1.5 is speedup factor
     adjustPosInBorder();
     sprite_.setPosition(position_);
     updateAnim(dt);
     updateAngle();
 }
 inline void PlayerEntity::updateAngle() {
+    if (velocity_.y * velocity_.y + velocity_.x * velocity_.x < 0.01f) {
+        return;  //not moving
+    }
     float angle = std::atan2(velocity_.y, velocity_.x) * 180.f / 3.14159265f;
     float current = sprite_.getRotation();
     float delta = angle - current;

@@ -56,37 +56,12 @@ private:
     void onPlayerLeave(const PlayerLeaveEvent& event);
     void onPlayerJoin(const PlayerJoinEvent& event);
     void onClientCommonPlayerAttributesChange(const ClientCommonPlayerAttributesChangeEvent& event) const;
+    void onPlayerDash(const PlayerDashEvent& event) const;
+    void onSkillReady(const SkillReadyEvent& event) const;
+    void onSkillApplied(const SkillApplyEvent& event) const;
+    void onSkillEnd(const SkillEndEvent& event) const;
 public:
-    explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
-        : coord_(coordinator), server_(server), level_(level) {
-        {
-            signature_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
-            signature_.set(Coordinator::getComponentTypeID<Transform>(), true);
-            coord_.registerSystem(signature_);
-        }
-        eventbus.subscribe<EntitySizeChangeEvent>([this](const EntitySizeChangeEvent& event) {
-            this->onEntitySizeChange(event);
-        });
-        eventbus.subscribe<EntityHPChangeEvent>([this](const EntityHPChangeEvent& event) {
-            this->onEntityHPChange(event);
-        });
-        eventbus.subscribe<PlayerLeaveEvent>([this](const PlayerLeaveEvent& event) {
-            this->onPlayerLeave(event);
-        });
-        eventbus.subscribe<PlayerJoinEvent>([this](const PlayerJoinEvent& event) {
-            this->onPlayerJoin(event);
-        });
-        eventbus.subscribe<ClientCommonPlayerAttributesChangeEvent>([this](const ClientCommonPlayerAttributesChangeEvent& event) {
-            this->onClientCommonPlayerAttributesChange(event);
-        });
-        {
-            aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
-            aoiSignature_.set(Coordinator::getComponentTypeID<Transform>(), true);
-            aoiSignature_.set(Coordinator::getComponentTypeID<Size>(), true);
-            aoiSignature_.set(Coordinator::getComponentTypeID<NetSyncComp>(), true);
-            coord_.registerSystem(aoiSignature_);
-        }
-    }
+    explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus);
     void update(float dt) override;
 };
 inline void NetworkSyncSystem::onEntitySizeChange(const EntitySizeChangeEvent &event) {
@@ -113,6 +88,34 @@ inline void NetworkSyncSystem::onClientCommonPlayerAttributesChange(
         .writeInt16(ltonVec(event.newAttributes.maxVec))
         .writeInt16(ltonAcc(event.newAttributes.maxAcc));
     driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_PLAYER_ATTRIBUTES_UPDATE, true);
+    writer.clearBuffer();
+}
+inline void NetworkSyncSystem::onPlayerDash(const PlayerDashEvent &event) const {
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt16(ltonVec(event.dashVel));
+    driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_PLAYER_DASH, true);
+    writer.clearBuffer();
+}
+inline void NetworkSyncSystem::onSkillReady(const SkillReadyEvent &event) const {
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt8(static_cast<std::uint8_t>(event.relativeSkillIndex));
+    driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_SKILL_READY, true);
+    writer.clearBuffer();
+}
+inline void NetworkSyncSystem::onSkillApplied(const SkillApplyEvent &event) const {
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt8(static_cast<std::uint8_t>(event.relativeSkillIndex));
+    driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_SKILL_APPLIED, true);
+    writer.clearBuffer();
+}
+inline void NetworkSyncSystem::onSkillEnd(const SkillEndEvent &event) const {
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt8(static_cast<std::uint8_t>(event.relativeSkillIndex));
+    driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_SKILL_END, true);
     writer.clearBuffer();
 }
 #endif //UNDEROCEAN_NETWORKSYNCSYSTEM_H
