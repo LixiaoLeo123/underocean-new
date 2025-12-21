@@ -17,7 +17,7 @@ X(int, SERVER_TPS, 20) \
 X(int, ENTITY_SYNC_RADIUS_X, 2) \
 X(int, ENTITY_SYNC_RADIUS_Y, 1) \
 X(float, CAMERA_ALPHA, 0.05f) \
-X_ARRAY(char, playerId, 16, "Drantiss") \
+X_ARRAY(char, playerId, 16, "@") \
 X_ARRAY(std::uint8_t, playerUUID, 16, {0}) \
 X(int, currentLevel, 6) \
 X(bool, firstPlay, true) \

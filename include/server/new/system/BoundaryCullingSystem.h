@@ -21,7 +21,8 @@ public:
         auto& grid = coord_.ctx<GridResource>();
         for (Entity e : grid.outOfBoundEntities){
             if (coord_.hasComponent<NetworkPeer>(e)) continue;  //player
-            coord_.destroyEntity(e);
+            coord_.addComponent<EntityClearTag>(e, {});  //direct disappear, not "death"
+            coord_.notifyEntityChanged(e);
         }
     }
 };

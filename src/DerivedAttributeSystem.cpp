@@ -16,7 +16,8 @@ void DerivedAttributeSystem::update(float dt) {  //update fp
                 if (newSize < calcInitSize(type) * 1.01f) {  //cannot shrink below init size
                     eventBus_.publish<EntityDeathEvent>({entity});
                     continue;
-                } else {
+                }
+                else {
                     coord_.getComponent<Size>(entity).size = newSize;
                     fp.maxFp = calcMaxFP(type, newSize);
                     fp.fp = fp.maxFp * 0.8f;  //restore to 80% of new max fp
@@ -28,6 +29,9 @@ void DerivedAttributeSystem::update(float dt) {  //update fp
                     coord_.getComponent<HP>(entity).maxHp = maxHP;
                     if (coord_.getComponent<HP>(entity).hp > maxHP) {
                         coord_.getComponent<HP>(entity).hp = maxHP;
+                    }
+                    if (coord_.hasComponent<Attack>(entity)) {
+                        coord_.getComponent<Attack>(entity).baseDamage = calcAttackDamage(type, newSize);
                     }
                     eventBus_.publish<EntitySizeChangeEvent>({entity, newSize});  //notify size change for sync
                 }
@@ -44,6 +48,9 @@ void DerivedAttributeSystem::update(float dt) {  //update fp
                 coord_.getComponent<HP>(entity).maxHp = maxHP;
                 if (coord_.getComponent<HP>(entity).hp > maxHP) {
                     coord_.getComponent<HP>(entity).hp = maxHP;
+                }
+                if (coord_.hasComponent<Attack>(entity)) {
+                    coord_.getComponent<Attack>(entity).baseDamage = calcAttackDamage(type, newSize);
                 }
                 eventBus_.publish<EntitySizeChangeEvent>({entity, newSize});  //notify size change for sync
             }

@@ -4,6 +4,7 @@
 #include "../include/client/scenes/NameScene/NameScene.h"
 #include "client/common/ResourceManager.h"
 #include "../include/client/scenes/startmenu/StartMenu.h"
+#include "client/common/AudioManager.h"
 #include "client/ui/widgets/TextButton.h"
 #include "client/ui/widgets/labels/TextLabel.h"
 #include "server/core(deprecate)/GameData.h"
@@ -28,6 +29,7 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
             button->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
             button->setOnClick([this, j, i]() {
                 this->appendId(static_cast<char>('A' + (j * 5 + i)));
+                AudioManager::getInstance().playSound("audio/s_tip.wav");
             });
             add(button);
         }
@@ -41,6 +43,7 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
             button->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
             button->setOnClick([this, j, i]() {
                 this->appendId(static_cast<char>('a' + (j * 5 + i)));
+                AudioManager::getInstance().playSound("audio/s_tip.wav");
             });
             add(button);
         }
@@ -52,6 +55,7 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
         button->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
         button->setOnClick([this]() {
             this->backspaceId();
+            AudioManager::getInstance().playSound("audio/s_tip.wav");
         });
         add(button);
     }
@@ -62,6 +66,8 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
         okButton_->setColor(sf::Color(200,200,200),sf::Color(200,200,200),sf::Color(200,200,200));
         okButton_->setOnClick([this]() {
             this->tryConfirm();
+            AudioManager::getInstance().stopMusic();
+            AudioManager::getInstance().playSound("audio/s_cymbal.mp3");
         });
         add(okButton_);
     }
@@ -74,6 +80,8 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
         cachedId_->backspace();  //default empty
         add(cachedId_);
     }
+    AudioManager::getInstance().playMusic("audio/m_name.wav");
+    AudioManager::getInstance().setSoundVolume(65.f);
 }
 
 void NameScene::render(sf::RenderWindow &window) {
@@ -127,8 +135,8 @@ void NameScene::update(float dt) {
                 state_ = Ready;
                 break;
             }
-            static constexpr float viewAreaDecreaseRate = 675000.f;
-            static constexpr float viewCenterMovingRate = 0.37f;
+            static constexpr float viewAreaDecreaseRate = 506250.f;
+            static constexpr float viewCenterMovingRate = 0.2775f;
             static constexpr float viewRotatingRate = 2.5f;
             viewArea_ -= viewAreaDecreaseRate * dt;
             sf::Vector2f size = view_.getSize();

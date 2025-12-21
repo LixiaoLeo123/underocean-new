@@ -28,6 +28,9 @@ void EntityFactory::initialize(EventBus& eventBus) {
             EntityType entityType = {EntityTypeID::SMALL_YELLOW};
             coord_.addComponent(newEntity, entityType);
         }
+        {  //collision
+            coord_.addComponent<Collision>(newEntity, {});
+        }
         coord_.addComponent<NetSyncComp>(newEntity, {
         static_cast<std::uint8_t>(Random::randInt(0, TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC - 1))
         });
@@ -37,9 +40,18 @@ void EntityFactory::initialize(EventBus& eventBus) {
             {  //size
                 coord_.addComponent<Size>(newEntity, {playerData->size});
             }
+            {  //defence
+                coord_.addComponent<Defence>(newEntity, {});
+            }
+            {
+                coord_.addComponent<Invincibility>(newEntity, {3.f});
+            }
         }
         else {
             coord_.addComponent(newEntity, Boids{});
+            {
+                coord_.addComponent<Invincibility>(newEntity, {0.f});
+            }
             {  //size
                 Size size = {
                     ParamTable<EntityTypeID::SMALL_YELLOW>::INIT_SIZE
@@ -48,7 +60,8 @@ void EntityFactory::initialize(EventBus& eventBus) {
                 coord_.addComponent(newEntity, size);
             }
         }
-        eventBus.publish<AttributedEntityInitEvent>({newEntity, static_cast<bool>(playerData)});
+        eventBus.publish<AttributedEntityInitEvent>({newEntity, static_cast<bool>(playerData),
+            static_cast<bool>(playerData), static_cast<bool>(playerData)});
         coord_.notifyEntityChanged(newEntity);
         return newEntity;
     });

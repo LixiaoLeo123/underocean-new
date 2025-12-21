@@ -71,8 +71,8 @@ private:
 };
 inline void SkillBar::update() {
     constexpr float ALPHA = 0.05f;  //less is smoother
-    for (bool i : isSkillInAnim_) {
-        if (i) {
+    for (int i = 0; i < 4; ++i) {
+        if (isSkillInAnim_[i]) {
             float currentScale = skillScales_[i];
             float targetScale = isSkillActive_[i] ? SKILL_ACTIVE_SCALE : SKILL_INACTIVE_SCALE;
             skillScales_[i] = currentScale * (1.f - ALPHA) + targetScale * ALPHA;

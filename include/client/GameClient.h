@@ -4,8 +4,10 @@
 
 #ifndef UNDEROCEAN_CLIENT_H
 #define UNDEROCEAN_CLIENT_H
+#include <thread>
 #include <SFML/Graphics/RenderWindow.hpp>
 
+#include "common/AudioManager.h"
 #include "common/InputManager.h"
 #include "scenes/RootScene.h"
 #include "server/core(deprecate)/GameData.h"
@@ -50,6 +52,8 @@ public:
             window.clear();
             sceneManager.render(window);
             window.display();
+            AudioManager::getInstance().cleanupSounds();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));  //for network
         }
     }
 };

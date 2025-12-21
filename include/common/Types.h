@@ -8,6 +8,8 @@
 #include "net(depricate)/enet.h"
 #include <cmath>
 #include <vector>
+
+#include "server/new/others/HitBox.h"
 //x-macro
 #define ENTITY_TYPES \
 X(SMALL_YELLOW) \
@@ -27,10 +29,11 @@ constexpr ComponentType MAX_COMPONENTS = 32;
 using ResourceType = std::size_t;
 using Signature = std::bitset<MAX_COMPONENTS>;
 constexpr float ENTITY_MAX_SIZE = 200.f;
-constexpr float ENTITY_MAX_HP = 65535.f;
+constexpr float ENTITY_MAX_HP = 2048.f;
 constexpr float ENTITY_MAX_FP = 2048.f;
 constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
 constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
+constexpr float MAX_HP_DELTA = 512.f;
 constexpr std::uint8_t ltonSize8(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
@@ -73,6 +76,12 @@ constexpr std::uint16_t ltonAcc(float acc) {    //local fp to net fp
 constexpr float ntolAcc(std::uint16_t netAcc) {   //net fp to local fp
     return static_cast<float>(netAcc) / 65535.f * PLAYER_MAX_MAX_ACC;
 }
+constexpr std::uint16_t ltonHPDelta(float delta) {    //local fp to net fp
+    return static_cast<std::uint16_t>(std::round((delta / MAX_HP_DELTA + 1) * 65535.f));
+}
+constexpr float ntolHPDelta(std::uint16_t netDelta) {   //net fp to local fp
+    return static_cast<float>(netDelta) / 65535.f * (1 + MAX_HP_DELTA);
+}
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
 #define X(name) name,
@@ -108,18 +117,21 @@ namespace ClientTypes {  //packet that client handle
         PKT_ENTITY_SIZE_CHANGE = 3, //reliable
         //2 entityID 1 newSize
         PKT_ENTITY_HP_CHANGE = 4,  //reliable
-        //2 entityID 1 newHP
-        PKT_MESSAGE = 4,
+        //2 entityID 1 newHP by percent
+        PKT_MESSAGE,
         // char[]
-        PKT_PLAYER_STATE_UPDATE = 5, //reliable, send when hp or fp change
-        //1HP 1FP = 2byte
-        PKT_PLAYER_ATTRIBUTES_UPDATE = 6,  //reliable, when max attributes change(including hp, fp, vel, acc)
+        PKT_PLAYER_STATE_UPDATE, //reliable, send when hp or fp change
+        //2HP 2FP 2size = 6 byte
+        PKT_PLAYER_ATTRIBUTES_UPDATE,  //reliable, when max attributes change(including hp, fp, vel, acc)
         //2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
-        PKT_PLAYER_DASH = 7, //reliable, for dash or other skills that add velocity instantly
+        PKT_PLAYER_DASH, //reliable, for dash or other skills that add velocity instantly
         //2 byte for vel, total 2 byte, dir decided by client
-        PKT_SKILL_APPLIED = 8,  //reliable, when skill is successfully applied, 1 byte for relative skill index(0, 1, 2, 3)
-        PKT_SKILL_READY = 9,  //same
-        PKT_SKILL_END = 10,    //same
+        PKT_SKILL_APPLIED,  //reliable, when skill is successfully applied, 1 byte for relative skill index(0, 1, 2, 3)
+        PKT_SKILL_READY,  //same
+        PKT_SKILL_END,    //same
+        PKT_ENTITY_DEATH,  //reliable, when entity dies, 2 byte entityID * n
+        PKT_ENTITY_HP_DELTA,  //unreliable, 2 byte entityID, 2 byte delta * n
+        PKT_PLAYER_RESPAWN, //reliable, 0 byte
         PKG_FINISH_LOGIN, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, 4 byte for skill indices, total 12 byte
         COUNT
     };
@@ -191,11 +203,12 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MAX_VELOCITY = 8.f;
     static constexpr float MAX_FORCE = 60.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
-    static constexpr float INIT_SIZE = 3.f;  //remember changing GameData init
-    static constexpr float SIZE_STEP = 0.4f;  //size increase step
-    static constexpr float HP_BASE = 50.f;  //hp proportional to size
-    static constexpr float FP_BASE = 10.f;  //fp proportional to size^2
-    static constexpr float FP_DEC_RATE_BASE = 0.1f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 4.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.3f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 100.f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -204,7 +217,9 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SEPARATION_WEIGHT = 450.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
     static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{1.f, 1.f} }; //relative to center, size1-based
 };
 struct EntitySizeChangeEvent {
     Entity entity;
@@ -212,7 +227,7 @@ struct EntitySizeChangeEvent {
 };
 struct EntityHPChangeEvent {
     Entity entity;
-    float newHP;
+    float delta;
 };
 struct PlayerLeaveEvent {
     ENetPeer* peer;
@@ -222,7 +237,9 @@ struct PlayerJoinEvent {
 };
 struct AttributedEntityInitEvent {  //for EntityFactory to init attributes
     Entity e;
+    bool isPlayer;
     bool shouldAddFP;
+    bool shouldAddAttack;
 };
 struct EntityDeathEvent {
     Entity entity;
@@ -246,6 +263,13 @@ struct SkillEndEvent {
 struct PlayerDashEvent {
     ENetPeer* peer;
     float dashVel;  //dir decided by client
+};
+struct EntityCollisionEvent {
+    Entity e1;
+    Entity e2;
+};
+struct PlayerRespawnEvent {
+    Entity player;
 };
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;

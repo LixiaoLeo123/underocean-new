@@ -1,4 +1,6 @@
 #include "server/new/Coordinator.h"
+
+#include "client/common/KeyBindingManager.h"
 #include "server/new/component/Components.h"
 Coordinator::Coordinator(){
     registerComponent<Transform>();
@@ -15,5 +17,12 @@ Coordinator::Coordinator(){
     registerComponent<FP>();
     registerComponent<Mass>();
     registerComponent<NetSyncComp>();
+    registerComponent<Collision>();
+    registerComponent<Attack>();
+    registerComponent<Defence>();
+    registerComponent<Invincibility>();
+    registerComponent<EntityClearTag>();
+    registerComponent<FoodBall>();
+    registerComponent<NoNetControl>();
     registerSystem(Signature{});  //empty to get to
 }

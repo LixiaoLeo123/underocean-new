@@ -10,6 +10,7 @@
 #include "PlayerStatus.h"
 #include "SkillBar.h"
 #include "client/common/ChatBox.h"
+#include "client/common/DeathEffectSystem.h"
 #include "client/common/InputManager.h"
 #include "client/common/IScene.h"
 #include "client/common/NetworkEntity.h"
@@ -26,7 +27,7 @@ public:
         ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox);
     void render(sf::RenderWindow& window) override;
     void handleEvent(const sf::Event &event) override;
-    void resetViewSize(unsigned windowWidth, unsigned windowHeight);
+    void resetViewSize(unsigned windowWidth, unsigned windowHeight, float scale = 1.f);
     void correctView();  //keep view inside map size
     void update(float dt) override;
     [[nodiscard]] unsigned getCurrentTick() const { return currentTick_; }
@@ -36,6 +37,14 @@ public:
     virtual std::uint16_t ltonY(float y) = 0;  //local to net y
     virtual float ntolY(std::uint16_t y) = 0;
 protected:
+    struct DamagePopup {
+        sf::Text text;
+        float lifetime;
+        float maxLifetime;
+        sf::Color initialColor;
+    };
+    std::vector<DamagePopup> damagePopups_;
+    DeathEffectSystem deathSystem_;
     sf::Sprite background_;
     sf::View view_ {};
     bool viewInit_ { false };  //not init
@@ -44,12 +53,23 @@ protected:
     void handleEntityStaticData();
     void handleEntityLeave();
     void handleEntityDynamic();
+    void handleEntityDeath();
+    void handleEntityHPChange();
     void handlePlayerStateUpdate();  //fp, hp
     void handleEntitySizeChange();
     void handlePlayerAttributesUpdate();  //max hp, max fp, max vel, max acc
     void handleMessagePacket();
     void handlePlayerDash();
     void handleSkillPackets();  //including skill ready, skill end and skill apply
+    void handlePlayerRespawn();
+    void handleHPDelta();
+    enum class State {
+        GAMING,
+        DEATH
+    } state_ = State::GAMING;
+    constexpr static float DEATH_TEXT_DISPLAY_START = 1.2f;
+    constexpr static float DEATH_TEXT_DISPLAY_END =5.5f;
+    float deathTimer_ = 0.f;  //for anim
 private:
     constexpr static float VIEW_WIDTH = 80.f;
     constexpr static float VIEW_HEIGHT = 45.f;
@@ -61,17 +81,19 @@ protected:
     std::shared_ptr<ClientNetworkDriver> driver_;  //given by LevelSelectMenu
     PacketWriter writer_;  //reuse
     SkillBar skillBar_;
+    sf::Shader& deathFilter_;
+    sf::Shader& blur_;
     unsigned currentTick_ { 0 };
 };
-inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight) {
+inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight, float scale) {
     float windowRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     constexpr static float viewRatio = VIEW_WIDTH / VIEW_HEIGHT;
     if (windowRatio > viewRatio) {
         float newHeight = VIEW_WIDTH / windowRatio;
-        view_.setSize(VIEW_WIDTH, newHeight);
+        view_.setSize(VIEW_WIDTH * scale, newHeight * scale);
     } else {
         float newWidth = VIEW_HEIGHT * windowRatio;
-        view_.setSize(newWidth, VIEW_HEIGHT);
+        view_.setSize(newWidth * scale, VIEW_HEIGHT * scale);
     }
 }
 inline void LevelSceneBase::handleEvent(const sf::Event &event) {

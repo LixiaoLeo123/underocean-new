@@ -7,7 +7,7 @@
 #include <array>
 #include <cmath>
 #include <SFML/System/Vector2.hpp>
-struct CollisionBox {
+struct CollisionBox_deprecate {
     sf::Vector2f offset;
     sf::Vector2f size;
     float rotation = 0.0f;   //by radians

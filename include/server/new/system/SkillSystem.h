@@ -24,12 +24,14 @@ public:
     constexpr static float getSkillCooldown(int skillIndex, int level);
     constexpr static float getSkillDuration(int skillIndex, int level);
 private:
+    constexpr static int TOTAL_SKILL_NUM = 48;  //6 * 8
     Signature playerSig_ {};
     GameServer& server_;   //to get buffered action data
     Coordinator& coord_;  //to get entity and modify entity
     EventBus& eventBus_;  //to publish skill emit, subscribe player join and leave event
     std::unordered_map<ENetPeer*, std::pair<bool, std::array<float, 4>>> skillCooldowns_ {};  //peer to skill cooldowns, bool for enabled, cooldown for both skill ready cooldown and skill end cooldown
     std::vector<std::function<void(ENetPeer* peer, int level)>> skillApplyHandler_ {};
+    std::vector<std::function<void(ENetPeer* peer, int level)>> skillEndHandler_ {};
     void onPlayerJoin(ENetPeer* peer);
     void onPlayerLeave(ENetPeer* peer);
 };

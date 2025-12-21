@@ -79,6 +79,7 @@ inline void ServerNetworkDriver::pollPackets() {
                 packets_[PKT_CONNECT].push(std::move(namedPacket)); //connect packet
                 enet_peer_timeout(event.peer, PING_TIMES, PING_TIMEOUT_MIN, PING_TIMEOUT_MAX);
                 enet_peer_ping_interval(event.peer, HEARTBEAT_INTERVAL);
+                // enet_peer_throttle_configure(event.peer, 0, 0, 0);
                 break;
             }
             case ENET_EVENT_TYPE_RECEIVE: {

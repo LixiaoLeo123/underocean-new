@@ -13,6 +13,7 @@
 class NetworkControlSystem : public ISystem{
 private:
     Signature signature_ {};
+    Signature noNetControlSignature_ {};
     Coordinator& coord_;  //to get entity and modify entity
     GameServer& server_;  //to get network information (PlayerData)
     LevelBase& level_;    //to convert net pos and local pos
@@ -22,6 +23,7 @@ public:
         :coord_(coordinator), server_(server), level_(level){
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<Transform>()), true);
         signature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<NetworkPeer>()), true);
+        noNetControlSignature_.set(static_cast<size_t>(Coordinator::getComponentTypeID<NoNetControl>()), true);
         coord_.registerSystem(signature_);
         eventBus.subscribe<PlayerLeaveEvent>([this](const PlayerLeaveEvent& event) {
             this->onPlayerLeave(event);
@@ -30,6 +32,7 @@ public:
     void update(float dt) override {
         auto& networkEntities = coord_.getEntitiesWith(signature_);
         for (Entity e : networkEntities) {
+            if (coord_.hasComponent<NoNetControl>(e)) continue;
             auto& trans = coord_.getComponent<Transform>(e);
             ENetPeer* peer = coord_.getComponent<NetworkPeer>(e).peer;
             float worldX = level_.ntolX(server_.playerList_[peer].netX);
@@ -41,6 +44,14 @@ public:
                 coord_.getComponent<Velocity>(e) = ((UVector)trans - prevIt->second) / dt;  //update velocity
             }
             networkEntityPrevTransform_[peer] = trans;  //update prev pos
+        }
+        auto noNetControlEntities = coord_.getEntitiesWith(noNetControlSignature_);
+        for (Entity e : noNetControlEntities) {
+            coord_.getComponent<NoNetControl>(e).countDown -= dt;
+            if (coord_.getComponent<NoNetControl>(e).countDown <= 0.f) {
+                coord_.removeComponent<NoNetControl>(e);
+                coord_.notifyEntityChanged(e);
+            }
         }
     }
     void onPlayerLeave(const PlayerLeaveEvent& event) {

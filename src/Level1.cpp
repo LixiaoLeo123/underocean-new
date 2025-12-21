@@ -6,9 +6,12 @@
 #include "server/new/resources/plots/PlotContext1.h"
 #include "server/new/system/AccelerationLimitSystem.h"
 #include "server/new/system/AccelerationSystem.h"
+#include "server/new/system/AttackingSystem.h"
 #include "server/new/system/BoidsSystem.h"
 #include "server/new/system/BoundaryCullingSystem.h"
+#include "server/new/system/CollisionSystem.h"
 #include "server/new/system/DerivedAttributeSystem.h"
+#include "server/new/system/EntityClearSystem.h"
 #include "server/new/system/GridBuildSystem.h"
 #include "server/new/system/SkillSystem.h"
 #include "server/new/system/VelocityLimitSystem.h"
@@ -20,6 +23,8 @@ void Level1::initialize() {
     emplaceSystem<GridBuildSystem>(coordinator_);
     emplaceSystem<BoidsSystem>(coordinator_);
     emplaceSystem<SkillSystem>(server_, coordinator_, eventBus_);
+    emplaceSystem<AttackingSystem>(eventBus_, coordinator_);
+    emplaceSystem<CollisionSystem>(coordinator_, eventBus_);
     emplaceSystem<EntityGenerationSystem>(coordinator_, entityFactory_, MAX_ENTITIES);
     emplaceSystem<BoundaryCullingSystem>(coordinator_);
     emplaceSystem<AccelerationLimitSystem>(coordinator_);
@@ -27,6 +32,7 @@ void Level1::initialize() {
     emplaceSystem<VelocityLimitSystem>(coordinator_);
     emplaceSystem<MovementSystem>(coordinator_);
     emplaceSystem<NetworkSyncSystem>(coordinator_, server_, *this, eventBus_);
+    emplaceSystem<EntityClearSystem>(coordinator_, eventBus_);
     getSystem<EntityGenerationSystem>().setGenerationSpeed(10000.f);  //fast spawn
     coordinator_.ctx<GridResource>().init(MAP_SIZE.x, MAP_SIZE.y, CHUNK_COLS, CHUNK_ROWS);  //40x36 chunks
     coordinator_.emplaceContext<PlotContext1>();

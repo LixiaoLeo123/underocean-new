@@ -5,24 +5,35 @@
 #ifndef UNDEROCEAN_COMPONENTS_H
 #define UNDEROCEAN_COMPONENTS_H
 #include "common/Types.h"
+#include "server/new/others/HitBox.h"
+#include "server/new/others/UVector.h"
 struct UVector;
 struct Transform {
     float x = 0, y = 0;
     Transform(UVector vec);
     explicit Transform(float x = 0.f, float y = 0.f) : x(x), y(y) {}
     void operator+=(UVector vec);
+    operator UVector() const {
+        return UVector{x, y};
+    }
 };
 struct Velocity {
     float vx = 0.f, vy = 0.f;
     Velocity(UVector vec);
     explicit Velocity(float vx = 0.f, float vy = 0.f) : vx(vx), vy(vy) {}
     void operator+=(UVector vec);
+    operator UVector() const {
+        return UVector{vx, vy};
+    }
 };
 struct Force {
     float ax = 0.f, ay = 0.f;
     Force(UVector vec);
     explicit Force(float ax = 0.f, float ay = 0.f) : ax(ax), ay(ay) {}
     void operator+=(UVector vec);
+    operator UVector() const {
+        return UVector{ax, ay};
+    }
 };
 struct MaxVelocity {
     float maxVelocity = 10.f;   //current, the constant one see types.h
@@ -63,50 +74,25 @@ struct ForceLoadChunk {};   //enable aoi in GridBuildSystem
 struct NetSyncComp {  //NetworkSyncSystem
     std::uint8_t offset;  //decide the tick
 };
-struct UVector {   //not a component, just for vector calculation, U for unified
-    float x;
-    float y;
-    constexpr UVector(float x = 0.f, float y = 0.f) : x(x), y(y) {}
-    UVector(Transform transform): x(transform.x), y(transform.y) {}
-    UVector(Velocity velocity) : x(velocity.vx), y(velocity.vy) {}
-    UVector(Force acceleration) : x(acceleration.ax), y(acceleration.ay) {}
-    UVector operator+(const UVector other) const {
-        return UVector{x + other.x, y + other.y};
-    }
-    UVector operator-(const UVector other) const {
-        return UVector{x - other.x, y - other.y};
-    }
-    UVector operator*(const UVector other) const {   //for dot
-        return UVector{x * other.x, y * other.y};
-    }
-    UVector operator*(const float scale) const {
-        return UVector{x * scale, y * scale};
-    }
-    UVector operator/(const float scale) const {
-        return UVector{x / scale, y / scale};
-    }
-    void operator*=(const float scale) {
-        x *= scale;
-        y *= scale;
-    }
-    void operator/=(const float scale) {
-        x /= scale;
-        y /= scale;
-    }
-    void operator+=(const UVector vec) {
-        x += vec.x;
-        y += vec.y;
-    }
-    void operator-=(const UVector vec) {
-        x -= vec.x;
-        y -= vec.y;
-    }
-    float len() const {
-        return sqrt(x * x + y * y);
-    }
-    float len2() const {
-        return (x * x + y * y);
-    }
+struct Collision {
+    // std::vector<HitBox> hitBoxes;
+};
+struct Attack {
+    float baseDamage = 10.f;  //already with size scale
+    float skillScale = 1.f;  //scale with skill level
+};
+struct Defence {
+    float damageReduction = 0.f;  //flat damage reduction
+};
+struct Invincibility {  //mark for invincibility
+    float cooldown = 0.f;  //remaining duration
+};
+struct EntityClearTag {};  //mark for clearing entity should be cleared
+struct FoodBall {
+    float nutrition;  //how much fp it can restore
+};
+struct NoNetControl {  //for player respawn interval
+    float countDown = 4.f;
 };
 inline Transform::Transform(UVector vec): x(vec.x), y(vec.y) {};
 inline Velocity::Velocity(UVector vec): vx(vec.x), vy(vec.y) {};

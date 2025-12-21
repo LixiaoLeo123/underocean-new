@@ -9,6 +9,7 @@
 #include "client/common/IScene.h"
 #include "client/common/KeyBindingManager.h"
 #include "../startmenu/StartMenu.h"
+#include "client/common/AudioManager.h"
 #include "client/ui/layouts/LazyLayout.h"
 #include "client/ui/widgets/Panel.h"
 #include "client/ui/widgets/labels/SmoothTextLabel.h"
@@ -78,6 +79,10 @@ public:
         if (float time = clock_.getElapsedTime().asSeconds(); time > blackScreenDelay) {
             state_ = ShowTitle;
             title_->setVisible(true);
+            if (!title0SoundPlayed_) {
+                AudioManager::getInstance().playSound("audio/s_title.wav");
+                title0SoundPlayed_ = true;
+            }
             if (time > loadingDelay) {
                 state_ = Loading;
                 loadingIndicator_->setVisible(true);
@@ -85,6 +90,10 @@ public:
                     loadingIndicator_->setVisible(false);
                     state_ = Skip;
                     skipTip_->setVisible(true);
+                    if (!title1SoundPlayed_) {
+                        AudioManager::getInstance().playSound("audio/s_title.wav");
+                        title1SoundPlayed_ = true;
+                    }
                 }
             }
         }
@@ -107,6 +116,8 @@ private:
     bool viewDirty_{false};
     Panel panel_;
     State state_{BlackScreen};
+    bool title0SoundPlayed_{false};
+    bool title1SoundPlayed_{false};
     static constexpr float blackScreenDelay = 1.5f;   //on start
     static constexpr float loadingDelay = 3.f;    //show loading anim
 };

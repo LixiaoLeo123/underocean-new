@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(Underocean)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 
 set(SFML_DIR "C:/Users/15201/Documents/code/cpp/SFML-2.6.2-windows-vc17-64-bit/SFML-2.6.2/lib/cmake/SFML")
@@ -41,6 +41,11 @@ add_executable(Underocean
         src/ChatBox.cpp
         src/SkillBar.cpp
         src/SkillSystem.cpp
+        src/CollisionSystem.cpp
+        src/EntityClearSystem.cpp
+        include/server/new/system/AttackingSystem.h
+        src/AttackingSystem.cpp
+        src/AudioManager.cpp
 )
 
 

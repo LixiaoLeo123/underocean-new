@@ -42,6 +42,7 @@ public:
         }
         enet_peer_timeout(serverPeer_, PING_TIMES, PING_TIMEOUT_MIN, PING_TIMEOUT_MAX);
         enet_peer_ping_interval(serverPeer_, HEARTBEAT_INTERVAL);
+        // enet_peer_throttle_configure(serverPeer_, 0, 0, 0);
         return true;
     }
     void setOnConnect(const std::function<void()> &onConnect) { onConnect_ = onConnect; }
@@ -67,6 +68,7 @@ public:
         }
         enet_peer_timeout(serverPeer_, PING_TIMES, PING_TIMEOUT_MIN, PING_TIMEOUT_MAX);
         enet_peer_ping_interval(serverPeer_, HEARTBEAT_INTERVAL);
+        // enet_peer_throttle_configure(serverPeer_, 0, 0, 0);
         return true;
     }
     void pollPacket() { //read buffer, distribute by types and try reconnecting, and maintain heartbeat

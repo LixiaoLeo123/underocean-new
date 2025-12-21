@@ -46,6 +46,7 @@ void showAnnoyingDog() {
     dog.setScale(window.getSize().x / 72.f, window.getSize().x / 72.f);
     sf::Clock animClock{};
     static constexpr float animTime = 0.25f;
+    AudioManager::getInstance().playMusic("audio/m_crash.wav");
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {

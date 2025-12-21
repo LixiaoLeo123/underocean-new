@@ -123,7 +123,7 @@ public:
     }
     template<typename T>
     void addComponent(Entity entity, T component) {  //must call notifyEntityChanged manually
-        assert(!hasComponent<T>(entity) && "Component has registered!");
+        if (hasComponent<T>(entity)) return;  //has registered
         getComponentArray<T>()->InsertData(entity, component);
         signatures[entity].set(getComponentTypeID<T>(), true);
     }

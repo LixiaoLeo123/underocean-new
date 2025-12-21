@@ -7,6 +7,7 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 
+#include "ClientPhysics.h"
 #include "ResourceManager.h"
 #include "common/Types.h"
 #include "common/utils/Physics.h"
@@ -17,11 +18,13 @@ public:
     void setSize(float size);
     void setMaxVec(float maxVec) {
         maxVelocity_ = maxVec;
-        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, RESISTANCE_FORCE_POW_TIMES);
+        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, DEFAULT_RESISTANCE_FORCE_POW_TIMES);
+        overspeedResistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, OVERSPEED_RESISTANCE_FORCE_POW_TIMES);
     }
     void setMaxAcc(float maxAcc) {
         maxAcceleration_ = maxAcc;
-        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, RESISTANCE_FORCE_POW_TIMES);
+        resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, DEFAULT_RESISTANCE_FORCE_POW_TIMES);
+        overspeedResistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, OVERSPEED_RESISTANCE_FORCE_POW_TIMES);
     }
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
@@ -48,7 +51,12 @@ public:
     void dash(float dashVel) {
         dashVel_ = dashVel;
     }
+    //for gore
+    [[nodiscard]] const sf::Sprite& getSprite() const { return sprite_; }
+    [[nodiscard]] const sf::Vector2f& getScale() const { return sprite_.getScale(); }
 private:
+    static constexpr float DEFAULT_RESISTANCE_FORCE_POW_TIMES = 2.f;  //f = k*v^?
+    static constexpr float OVERSPEED_RESISTANCE_FORCE_POW_TIMES = 0.5f;  //f = k*v^?
     sf::Sprite sprite_;
     int totalFrames_{ -1 };   // decided by type
     float frameInterval_{ -1.f }; // time per frame
@@ -61,9 +69,11 @@ private:
     float mapWidth_ { 0.f };
     float mapHeight_ { 0.f };
     float resistanceAccPerVel_{ 0.1f };  //matching MaxVelocity
+    float overspeedResistanceAccPerVel_{ 0.1f };  //matching MaxVelocity
     float dashVel_ { -1.f };  //-1.f means no dash
+    float cachedSize{};
     bool isFlipped{false};
-    static constexpr float RESISTANCE_FORCE_POW_TIMES = 1.f;  //f = k*v^?
+    float calcResistanceAcc(float vel) const;
     void adjustPosInBorder() {   //keep in border
         if (position_.x < 0.f) {
             position_.x = 0.f;
@@ -99,6 +109,11 @@ private:
         }
     }
 };
+inline float PlayerEntity::calcResistanceAcc(float vel) const {
+    if (vel > maxVelocity_)
+        return overspeedResistanceAccPerVel_ * std::pow(vel, OVERSPEED_RESISTANCE_FORCE_POW_TIMES);
+    return resistanceAccPerVel_ * std::pow(vel, DEFAULT_RESISTANCE_FORCE_POW_TIMES);
+}
 inline void PlayerEntity::setType(EntityTypeID type) {
     sprite_.setTexture(ResourceManager::getTexture(getTexturePath(type)));
     totalFrames_ = getTextureTotalFrame(type);
@@ -109,7 +124,9 @@ inline void PlayerEntity::setType(EntityTypeID type) {
 }
 inline void PlayerEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
-    float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x);
+    if (cachedSize == size) return;  //no need to update
+    cachedSize = size;
+    float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
     sprite_.setScale(scale, scale);
 }
 inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
@@ -117,10 +134,10 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // player entity should have acceleration and velocity, smoothly move to target position
     // max acceleration and max velocity can be got by ParamTable<EntityTypeID>::MAX_FORCE/VELOCITY
     // and camera should follow the player smoothly, using GameData::CAMERA_ALPHA
-    sf::Vector2f inputAcc = Physics::clampVec(rawAcc, maxAcceleration_);
+    sf::Vector2f inputAcc = ClientPhysics::clampVec(rawAcc, maxAcceleration_);
     if (velocity_.x != 0.f || velocity_.y != 0.f) {
         float currentSpeed = std::sqrt(velocity_.x * velocity_.x + velocity_.y * velocity_.y);
-        float dragMagnitude = resistanceAccPerVel_ * std::pow(currentSpeed, RESISTANCE_FORCE_POW_TIMES) * dt;
+        float dragMagnitude = calcResistanceAcc(currentSpeed) * dt;
         if (dragMagnitude > currentSpeed) {
             velocity_ = {0.f, 0.f};
         } else {
@@ -130,7 +147,7 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     }
     velocity_ += inputAcc * dt;
     if ((rawAcc.x != 0.f || rawAcc.y != 0.f) && dashVel_ > 0.f) {  //dash
-        velocity_ += Physics::makeVec(rawAcc, dashVel_);
+        velocity_ += ClientPhysics::makeVec(rawAcc, dashVel_);
         dashVel_ = -1.f;  //reset dash
     }
     constexpr float MIN_SPEED = 0.001f;

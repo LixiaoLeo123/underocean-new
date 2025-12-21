@@ -1,13 +1,14 @@
 // cpp
 #ifndef UNDEROCEAN_NETWORKENTITY_H
 #define UNDEROCEAN_NETWORKENTITY_H
+
 #include "server/core(deprecate)/GameData.h"
-#define EXP_INTERPOLATION
-#ifdef EXP_INTERPOLATION
-#include <iostream>
+#include <algorithm>
+#include <cmath>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include "ResourceManager.h"
 #include "common/Types.h"
 
@@ -16,10 +17,24 @@ public:
     NetworkEntity()
     : clientPos_(0.f, 0.f), prevNetPos_(0.f,0.f), netPos_(0.f,0.f),
       velocity_(0.f,0.f),
-      interpTimer_(0.f),
-      hasNet_(false), hasPrevNet_(false), SERVER_DT_(static_cast<float>(TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC) / static_cast<float>(GameData::SERVER_TPS)) {}
+      SERVER_DT_(static_cast<float>(TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC) / static_cast<float>(GameData::SERVER_TPS)),
+      interpTimer_(0.f), hasNet_(false), hasPrevNet_(false)
+    {
+        hpBarBg_.setFillColor(sf::Color(40, 40, 40));
+        hpBarBg_.setOutlineColor(sf::Color::Black);
+        hpBarBg_.setOutlineThickness(0.25f);
+        hpBarFill_.setOutlineThickness(0.15f);
+        hpBarFill_.setFillColor(sf::Color(0, 220, 0));
+    }
+    //for gore
+    [[nodiscard]] const sf::Sprite& getSprite() const { return sprite_; }
+    [[nodiscard]] const sf::Vector2f& getScale() const { return sprite_.getScale(); }
     void render(sf::RenderWindow& window) const {
         window.draw(sprite_);
+        if (hpDisplayTimer_ > 0.f) {
+            window.draw(hpBarBg_);
+            window.draw(hpBarFill_);
+        }
     }
     // Immediate local placement (no interpolation)
     void setPos(float x, float y) {
@@ -66,7 +81,9 @@ public:
         updatePos(dt);
         updateAngle();
         updateAnim(dt);
+        updateHpBar(dt);
     }
+    void setHpPercentage(float pct);
     void updatePos(float dt);
     void updateAngle();
     void updateAnim(float dt);
@@ -75,6 +92,7 @@ public:
     [[nodiscard]] sf::Vector2f getPosition() const { return clientPos_; }
     [[nodiscard]] sf::Vector2f getVelocity() const { return velocity_; }
 private:
+    void updateHpBar(float dt);
     static sf::Vector2f lerp(const sf::Vector2f& a, const sf::Vector2f& b, float t) {
         return { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
     }
@@ -85,6 +103,7 @@ private:
     sf::Vector2f velocity_;      // derived from consecutive authoritative positions
     float SERVER_DT_;   // server update interval
     float interpTimer_;    // time since last authoritative update
+    float size_{};  //to draw hp bar
     float animTimer{ 0.f };
     bool hasNet_;
     bool hasPrevNet_;
@@ -95,7 +114,16 @@ private:
     unsigned frameWidth_{ 0u };   // decided by type
     unsigned frameHeight_{ 0u };  // decided by type
     constexpr static float ANGLE_UPDATE_SPEED2_THRESHOLD{ 0.3f };
+    static constexpr float BAR_WIDTH = 1.f;
+    static constexpr float BAR_HEIGHT = 0.02f;
+    //HP bar
+    sf::RectangleShape hpBarBg_;
+    sf::RectangleShape hpBarFill_;
+    float hpDisplayTimer_{ 0.f };
+    float currentHpPct_{ 1.f };
+    constexpr static float HP_SHOW_DURATION{ 4.0f };
 };
+
 inline void NetworkEntity::setType(EntityTypeID type) {
     sprite_.setTexture(ResourceManager::getTexture(getTexturePath(type)));
     totalFrames_ = getTextureTotalFrame(type);
@@ -104,11 +132,54 @@ inline void NetworkEntity::setType(EntityTypeID type) {
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
     sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
 }
+
 inline void NetworkEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
-    float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x);
+    size_ = size;
+    float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
     sprite_.setScale(scale, scale);
 }
+inline void NetworkEntity::setHpPercentage(float pct) {  //only color
+    pct = std::clamp(pct, 0.f, 1.f);
+    currentHpPct_ = pct;
+    hpDisplayTimer_ = HP_SHOW_DURATION;
+    sf::Uint8 r, g, b;
+    b = 0;
+    if (pct > 0.5f) {
+        //Green (0,255,0) -> Yellow (255,255,0)
+        float t = (1.f - pct) * 2.f;
+        r = static_cast<sf::Uint8>(255.f * t);
+        g = 255;
+    }
+    else {
+        //Yellow (255,255,0) -> Red (255,0,0)
+        float t = pct * 2.f;
+        r = 255;
+        g = static_cast<sf::Uint8>(255.f * t);
+    }
+    hpBarFill_.setFillColor(sf::Color(r, g, b));
+    static constexpr sf::Uint8 OUTLINE_OFFSET = 20;
+    const auto& colorHandler = [&](sf::Uint8 origin) {
+        if (255 - origin <= OUTLINE_OFFSET)
+            return static_cast<sf::Uint8>(255);
+        else
+            return static_cast<sf::Uint8>(origin + OUTLINE_OFFSET);
+    };
+    hpBarFill_.setOutlineColor(sf::Color(colorHandler(r), colorHandler(g), colorHandler(b)));  //brighter outline
+}
+inline void NetworkEntity::updateHpBar(float dt) {
+    if (hpDisplayTimer_ <= 0.f) return;
+    hpDisplayTimer_ -= dt;
+    hpBarBg_.setSize({BAR_WIDTH, BAR_HEIGHT});
+    hpBarBg_.setOrigin(BAR_WIDTH / 2.f, BAR_HEIGHT / 2.f);
+    hpBarFill_.setSize({BAR_WIDTH * currentHpPct_, BAR_HEIGHT});
+    hpBarFill_.setOrigin(0.f, BAR_HEIGHT / 2.f);
+    sf::Vector2f barPos = clientPos_;
+    barPos.y -= size_ * 0.6f;
+    hpBarBg_.setPosition(barPos);
+    hpBarFill_.setPosition(barPos.x - BAR_WIDTH / 2.f, barPos.y);
+}
+
 inline void NetworkEntity::updatePos(float dt) {
     if (!hasNet_) {
         // no server info: simple prediction by last known velocity
@@ -164,7 +235,4 @@ inline void NetworkEntity::updateAnim(float dt) {
     unsigned frame = static_cast<unsigned>(animTimer / frameInterval_) % totalFrames_;
     sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
 }
-#else
-
-#endif
 #endif // UNDEROCEAN_NETWORKENTITY_H

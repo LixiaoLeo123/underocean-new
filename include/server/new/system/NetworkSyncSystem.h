@@ -25,18 +25,22 @@ private:
     LevelBase& level_;   //use to get map size
     DBitset sizeChangedBits_ {};  //entities that size changed this frame
     DBitset hpChangedBits_ {};  //entities that HP changed this frame
+    std::unordered_map<Entity, std::vector<float>> hpDeltaList_;  //to send hp delta to client
     struct PeerAOI {
         DBitset current;
         DBitset last;
         DBitset enterBits;  //for cache
         DBitset leaveBits;
+        DBitset deathBits;
         std::vector<Entity> enterList;   //buffer that can be used multiple times
         std::vector<Entity> leaveList;
         std::vector<Entity> dynamicList;  //all current entities
+        std::vector<Entity> deathList;    //all death entities
         float lastHP {0u};
         float lastFP {0u};
     };
     std::unordered_map<ENetPeer*, PeerAOI> peerAOIs;
+    DBitset deathEntities_ {};  //entities that died this frame, to inform clients and avoid send EntityLeave packet
     static void extractIDs(const DBitset& bits, std::vector<Entity>& out) {
         const uint64_t* words = bits.data();
         out.clear();
@@ -53,6 +57,7 @@ private:
     }
     void onEntitySizeChange(const EntitySizeChangeEvent& event);
     void onEntityHPChange(const EntityHPChangeEvent& event);
+    void onEntityDeath(const EntityDeathEvent& event);
     void onPlayerLeave(const PlayerLeaveEvent& event);
     void onPlayerJoin(const PlayerJoinEvent& event);
     void onClientCommonPlayerAttributesChange(const ClientCommonPlayerAttributesChangeEvent& event) const;
@@ -60,6 +65,7 @@ private:
     void onSkillReady(const SkillReadyEvent& event) const;
     void onSkillApplied(const SkillApplyEvent& event) const;
     void onSkillEnd(const SkillEndEvent& event) const;
+    void onPlayerRespawn(const PlayerRespawnEvent& event) const;
 public:
     explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus);
     void update(float dt) override;
@@ -69,6 +75,10 @@ inline void NetworkSyncSystem::onEntitySizeChange(const EntitySizeChangeEvent &e
 }
 inline void NetworkSyncSystem::onEntityHPChange(const EntityHPChangeEvent &event) {
     hpChangedBits_.set(event.entity);
+    hpDeltaList_[event.entity].push_back(event.delta);
+}
+inline void NetworkSyncSystem::onEntityDeath(const EntityDeathEvent &event) {
+    deathEntities_.set(event.entity);
 }
 inline void NetworkSyncSystem::onPlayerLeave(const PlayerLeaveEvent& event) {
     ENetPeer* peer = event.peer;
@@ -117,5 +127,12 @@ inline void NetworkSyncSystem::onSkillEnd(const SkillEndEvent &event) const {
     writer.writeInt8(static_cast<std::uint8_t>(event.relativeSkillIndex));
     driver.send(writer.takePacket(), event.peer, 0, ClientTypes::PKT_SKILL_END, true);
     writer.clearBuffer();
+}
+inline void NetworkSyncSystem::onPlayerRespawn(const PlayerRespawnEvent &event) const {
+    Entity e = event.player;
+    if (!coord_.hasComponent<NetworkPeer>(e)) return;
+    ServerNetworkDriver& driver = server_.getNetworkDriver();
+    driver.send(nullptr, coord_.getComponent<NetworkPeer>(e).peer
+        , 0, ClientTypes::PKT_PLAYER_RESPAWN, true);
 }
 #endif //UNDEROCEAN_NETWORKSYNCSYSTEM_H

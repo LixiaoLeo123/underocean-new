@@ -9,14 +9,34 @@ SkillSystem::SkillSystem(GameServer& server, Coordinator& coord, EventBus& event
         playerSig_.set(Coordinator::getComponentTypeID<NetworkPeer>(), true);
         coord_.registerSystem(playerSig_);
     }
-    skillApplyHandler_.resize(48);  //6 * 8
+    skillApplyHandler_.resize(TOTAL_SKILL_NUM);  //6 * 8
+    skillEndHandler_.resize(TOTAL_SKILL_NUM);  //6 * 8
     skillApplyHandler_[2] = [&](ENetPeer* peer, int level) {  //Small Yellow Dash
         float dashVel = 20.f + level * 9.f;
         eventBus_.publish<PlayerDashEvent>({peer, dashVel});
     };
-    skillApplyHandler_[42] = [&](ENetPeer* peer, int level) {  //Small Yellow Dash
-        eventBus_.publish<PlayerDashEvent>({peer, dashVel});
-    };
+    {  //Attack
+        skillApplyHandler_[42] = [&](ENetPeer* peer, int level) {
+            auto& peerEntities = coord_.getEntitiesWith(playerSig_);
+            for (Entity e : peerEntities) {
+                if (coord_.getComponent<NetworkPeer>(e).peer == peer) {
+                    assert(coord_.hasComponent<Attack>(e));
+                    coord_.getComponent<Attack>(e).skillScale = 1.f + 0.2f * level;
+                    break;
+                }
+            }
+        };
+        skillEndHandler_[42] = [&](ENetPeer* peer, int level) {  //Attack
+            auto& peerEntities = coord_.getEntitiesWith(playerSig_);
+            for (Entity e : peerEntities) {
+                if (coord_.getComponent<NetworkPeer>(e).peer == peer) {
+                    assert(coord_.hasComponent<Attack>(e));
+                    coord_.getComponent<Attack>(e).skillScale = 0.f;
+                    break;
+                }
+            }
+        };
+    }
     {
         eventBus_.subscribe<PlayerJoinEvent>([this](const PlayerJoinEvent& event) {
             onPlayerJoin(event.playerData.peer);
@@ -36,6 +56,10 @@ void SkillSystem::update(float dt) {
                 if (cd < 0.f) {
                     //emit skill ready event
                     if (cooldownData.first) {
+                        if (skillEndHandler_[getSkillIndices(server_.playerList_[peer].type).skillIndices[i]]) {
+                            skillEndHandler_[getSkillIndices(server_.playerList_[peer].type).skillIndices[i]](peer,
+                                server_.playerList_[peer].skillLevels[i]);
+                        }
                         eventBus_.publish<SkillEndEvent>({peer, i});
                         cooldownData.first = false;
                         cd = getSkillCooldown(getSkillIndices(server_.playerList_[peer].type).skillIndices[i],
@@ -77,6 +101,10 @@ void SkillSystem::update(float dt) {
                 cooldownData.second[relativeSkillIndex] = getSkillCooldown(
                         getSkillIndices(server_.playerList_[peer].type).skillIndices[relativeSkillIndex],
                         server_.playerList_[peer].skillLevels[relativeSkillIndex]);
+                if (skillEndHandler_[getSkillIndices(server_.playerList_[peer].type).skillIndices[relativeSkillIndex]]) {
+                    skillEndHandler_[getSkillIndices(server_.playerList_[peer].type).skillIndices[relativeSkillIndex]](peer,
+                        server_.playerList_[peer].skillLevels[relativeSkillIndex]);
+                }
                 eventBus_.publish<SkillEndEvent>({peer, relativeSkillIndex});
                 actionPackets.pop();
                 continue;

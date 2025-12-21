@@ -54,6 +54,6 @@ private:
     sf::Clock clock_;  //for anim
     inline static float WIDTH = 1920.f;
     inline static float HEIGHT = 1080.f;
-    constexpr static float ANIM_TIME = 5.f;
+    constexpr static float ANIM_TIME = 8.f;
 };
 #endif //UNDEROCEAN_NAMESCENE_H
