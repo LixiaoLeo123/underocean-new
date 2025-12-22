@@ -6,6 +6,7 @@
 #define UNDEROCEAN_DERIVEDATTRIBUTESYSTEM_H
 #include "ISystem.h"
 #include "common/Types.h"
+#include "common/utils/Random.h"
 #include "server/new/Coordinator.h"
 #include "server/new/EventBus.h"
 #include "server/new/component/Components.h"
@@ -29,6 +30,9 @@ public:
         eventBus.subscribe<EntityCollisionEvent>([this](const EntityCollisionEvent& event) {
             this->onEntityCollision(event);
         });
+        eventBus.subscribe<EntityDeathEvent>([this](const EntityDeathEvent& event) {
+            this->onEntityDeath(event);
+        }, 1);
         fpSig_.set(Coordinator::getComponentTypeID<FP>(), true);
         fpSig_.set(Coordinator::getComponentTypeID<HP>(), true);
         fpSig_.set(Coordinator::getComponentTypeID<Size>(), true);
@@ -39,6 +43,7 @@ public:
     void update(float dt) override;  //update fp
     void onPlayerRespawn(const PlayerRespawnEvent& event) const;  //reset attributes
     void onEntityCollision(const EntityCollisionEvent& event) const;  //check if it is FoodBall, if then add FP
+    void onEntityDeath(const EntityDeathEvent& event) const;  //if entity with FP dies, drop FP
     void initEntityAttributes(const AttributedEntityInitEvent& event) const;  //from size to attributes, add components
     static float calcAttackDamage(EntityTypeID type, float size) {
         switch (type) {
@@ -117,6 +122,15 @@ public:
             default: return -1.f;
         }
     }
+    static float calcNutrition(EntityTypeID type, float size) {
+        switch (type) {
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::BASE_NUTRITION * size * size \
+            / ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+            ATTRIBUTE_ENTITY_TYPES
+#undef X
+            default: return 0.f;
+        }
+    }
 };
 inline void DerivedAttributeSystem::onPlayerRespawn(const PlayerRespawnEvent &event) const {
     Entity e = event.player;
@@ -154,13 +168,30 @@ inline void DerivedAttributeSystem::onPlayerRespawn(const PlayerRespawnEvent &ev
         }
     });
 }
+inline void DerivedAttributeSystem::onEntityDeath(const EntityDeathEvent &event) const {
+    auto& transform = coord_.getComponent<Transform>(event.entity);
+    EntityTypeID type = coord_.getComponent<EntityType>(event.entity).entityID;
+    float size = coord_.getComponent<Size>(event.entity).size;
+    Entity foodBall = coord_.createEntity();
+    coord_.addComponent<Transform>(foodBall, transform);
+    coord_.addComponent(foodBall, Velocity());
+    coord_.addComponent<Size>(foodBall, {1.f});
+    coord_.addComponent<FoodBall>(foodBall, {calcNutrition(type, size)});
+    coord_.addComponent<EntityType>(foodBall, {EntityTypeID::FOOD_BALL});
+    coord_.addComponent<Collision>(foodBall, {});
+    coord_.addComponent<NetSyncComp>(foodBall, {
+        static_cast<std::uint8_t>(Random::randInt(0, TICKS_PER_ENTITY_DYNAMIC_DATA_SYNC - 1))
+        });
+    coord_.notifyEntityChanged(foodBall);
+}
 inline void DerivedAttributeSystem::onEntityCollision(const EntityCollisionEvent &event) const {
     const auto& handleFPIncrease = [this](Entity e1, Entity e2) {
         if (coord_.hasComponent<FoodBall>(e1) && coord_.hasComponent<FP>(e2)) {
             auto& fpComp = coord_.getComponent<FP>(e2);
-            FoodBall& foodComp = coord_.getComponent<FoodBall>(e1);
+            auto& foodComp = coord_.getComponent<FoodBall>(e1);
             fpComp.fp += foodComp.nutrition;
-            coord_.destroyEntity(e1);  //consume food ball
+            coord_.addComponent<EntityClearTag>(e1, {});
+            coord_.notifyEntityChanged(e1);
         }
     };
     handleFPIncrease(event.e1, event.e2);

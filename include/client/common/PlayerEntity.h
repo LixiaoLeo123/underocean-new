@@ -127,7 +127,7 @@ inline void PlayerEntity::setSize(float size) {
     if (cachedSize == size) return;  //no need to update
     cachedSize = size;
     float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
-    sprite_.setScale(scale, scale);
+    sprite_.setScale(scale, scale * (isFlipped ? -1.f : 1.f));
 }
 inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // when mouse click, move the player to that direction(velocity proportional to distance)

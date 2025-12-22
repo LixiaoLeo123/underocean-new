@@ -47,6 +47,10 @@ public:
             std::memcpy(enetPacket->data + 1, packet->data(), payloadSize);
         }
         enet_peer_send(peer, channel, enetPacket);
+        flush();
+    }
+    void flush() {
+        enet_host_flush(serverHost_);
     }
     void pollPackets();
     std::unique_ptr<NamedPacket> popPacket(int packetType) {  //caution: must update peer list

@@ -146,9 +146,17 @@ void PlayerStatus::setHeartBlack() {
 void PlayerStatus::setMaxHP(float maxHP) {
     size_t currentFullHearts = std::floor(maxHP / HP_PER_HEART);
     if (heartStates_.size() == currentFullHearts) return;
-    size_t missedHearts = currentFullHearts - heartStates_.size();
-    for (size_t i = 0; i < missedHearts; ++i) {
-        heartStates_.push_back(0);  //empty
+    if (currentFullHearts > heartStates_.size()) {
+        size_t missedHearts = currentFullHearts - heartStates_.size();
+        for (size_t i = 0; i < missedHearts; ++i) {
+            heartStates_.push_back(0);  //empty
+        }
+    }
+    else {
+        size_t redundantHearts = heartStates_.size() - currentFullHearts;
+        for (int i = 0; i < redundantHearts; ++i) {
+            heartStates_.pop_back();
+        }
     }
     maxHP_ = maxHP;
     setHP(hp_);  //to update the heart states, preventing bad net packet
@@ -157,9 +165,17 @@ void PlayerStatus::setMaxFP(float maxFP) {
     // mirror setMaxHP behavior for foods
     size_t currentFullFoods = std::floor(maxFP / FP_PER_FOOD);
     if (foodStates_.size() == currentFullFoods) return;
-    size_t missedFoods = currentFullFoods - foodStates_.size();
-    for (size_t i = 0; i < missedFoods; ++i) {
-        foodStates_.push_back(0);  //empty
+    if (currentFullFoods > foodStates_.size()) {
+        size_t missedFoods = currentFullFoods - foodStates_.size();
+        for (size_t i = 0; i < missedFoods; ++i) {
+            foodStates_.push_back(0);  //empty
+        }
+    }
+    else {
+        size_t redundantFoods = foodStates_.size() - currentFullFoods;
+        for (int i = 0; i < redundantFoods; ++i) {
+            foodStates_.pop_back();
+        }
     }
     maxFP_ = maxFP;
     setFP(fp_);  //to update the food states, preventing bad net packet

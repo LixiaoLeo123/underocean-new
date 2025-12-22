@@ -9,9 +9,32 @@
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
 #include <span>
-
+#include <type_traits>
+#include <array>
 class EventBus;
-
+template <EntityTypeID ID>
+constexpr bool has_hit_boxes = requires {
+    { ParamTable<ID>::HIT_BOXES } -> std::convertible_to<std::span<const HitBox>>;
+};
+template <std::size_t... I>
+constexpr auto makeHitBoxLookup(std::index_sequence<I...>) {
+    return std::array<std::span<const HitBox>,
+        static_cast<std::size_t>(EntityTypeID::COUNT)>{
+            []<EntityTypeID ID>() {
+                if constexpr (has_hit_boxes<ID>) {
+                    return std::span<const HitBox>{ ParamTable<ID>::HIT_BOXES };
+                } else {
+                    return std::span<const HitBox>{};
+                }
+            }.template operator()<static_cast<EntityTypeID>(I)>()...
+        };
+}
+inline constexpr auto HIT_BOX_LOOKUP =
+    makeHitBoxLookup(
+        std::make_index_sequence<
+            static_cast<std::size_t>(EntityTypeID::COUNT)
+        >{}
+    );
 class CollisionSystem : public ISystem {
 private:
     Signature collisionSig_;
@@ -29,15 +52,8 @@ public:
     }
     void update(float dt) override;
     static constexpr std::span<const HitBox> getOriginalHitBoxes(EntityTypeID type) {
-        switch (type) {
-#define X(t) \
-            case EntityTypeID::t: \
-                return std::span{ParamTable<EntityTypeID::t>::HIT_BOXES};
-            PLAYER_ENTITY_TYPES
-#undef X
-        default:
-            return {};
-        }
+        auto idx = static_cast<std::size_t>(type);
+        return idx < HIT_BOX_LOOKUP.size() ? HIT_BOX_LOOKUP[idx] : std::span<const HitBox>{};
     }
 };
 #endif //UNDEROCEAN_COLLISIONSYSTEM_H

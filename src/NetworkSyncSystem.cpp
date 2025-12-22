@@ -249,5 +249,8 @@ void NetworkSyncSystem::update(float dt) {
         for (auto& pair : hpDeltaList_) {  //clear, avoid memory consumption
             pair.second.clear();
         }
+        deathEntities_.reset();
+        hpChangedBits_.reset();
+        server_.getNetworkDriver().flush();  //important TAT
     }
 }

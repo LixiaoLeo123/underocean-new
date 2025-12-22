@@ -49,6 +49,7 @@ void LevelSceneBase::render(sf::RenderWindow &window) {
     if (!viewInit_) {
         resetViewSize(window.getSize().x, window.getSize().y);
         correctView();
+        lightingSystem_.init(window.getSize().x, window.getSize().y);
         viewInit_ = true;
     }
     if (state_ == State::DEATH) {
@@ -94,7 +95,31 @@ void LevelSceneBase::render(sf::RenderWindow &window) {
     if (state_ != State::DEATH)
         player.render(window);
     deathSystem_.render(window);
-    //render player status UI
+    //light
+    lightingSystem_.clear(ambientLightColor_);
+    static std::vector<sf::FloatRect> obstacles;
+    obstacles.clear();
+    for (auto& pair : entities_) {
+        obstacles.push_back(pair.second.getSprite().getGlobalBounds());
+    }
+    lightingSystem_.updateObstacles(obstacles);
+    for (auto& pair : entities_) {
+        if (pair.second.hasLight()) {
+            lightingSystem_.drawLight(
+                pair.second.getPosition(),
+                view_,
+                pair.second.getLightRadius(),
+                pair.second.getLightColor()
+            );
+        }
+    }
+    lightingSystem_.display();
+    sf::View currentView = window.getView();
+    window.setView(window.getDefaultView());
+    sf::Sprite lightMapSprite = lightingSystem_.getLightMapSprite();
+    window.draw(lightMapSprite, sf::BlendMultiply);
+    window.setView(currentView);
+    //render UI
     playerStatus_.render(window);
     chatBox_->render(window);
     skillBar_.render(window);
@@ -132,6 +157,12 @@ void LevelSceneBase::handleEntityStaticData() {
             entity.setType(type);
             entity.setSize(ntolSize8(netSize));
             entity.setNetworkState({ntolX(netX), ntolY(netY)}, getCurrentTick());
+            float lightRadius = LightingSystem::getLightRadius(type);
+            if (lightRadius <= 0.f) continue;
+            const sf::Uint8* lightColorRGB = LightingSystem::getLightColor(type);
+            if (lightColorRGB == nullptr) continue;
+            entity.setLightProps(LightingSystem::getLightRadius(type),
+                sf::Color(lightColorRGB[0], lightColorRGB[1], lightColorRGB[2]));
         }
     }
 }
@@ -290,8 +321,10 @@ void LevelSceneBase::handlePlayerRespawn() {
 void LevelSceneBase::update(float dt) {
     ++currentTick_;
     driver_->pollPacket();
-    handlePlayerAttributesUpdate();
-    handlePlayerStateUpdate();
+    if (state_ != State::DEATH) {
+        handlePlayerAttributesUpdate();
+        handlePlayerStateUpdate();
+    }
     handleEntityLeave();
     handleEntityStaticData();
     handleEntityDynamic();
@@ -338,4 +371,6 @@ void LevelSceneBase::update(float dt) {
     deathSystem_.update(dt * (state_ == State::DEATH ? 0.5f : 1.f));
     chatBox_->update(dt);
     skillBar_.update();
+    driver_->flush();  //important
+    lightingSystem_.update(dt);
 }

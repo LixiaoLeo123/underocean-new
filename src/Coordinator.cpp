@@ -24,5 +24,6 @@ Coordinator::Coordinator(){
     registerComponent<EntityClearTag>();
     registerComponent<FoodBall>();
     registerComponent<NoNetControl>();
+    registerComponent<FoodBall>();
     registerSystem(Signature{});  //empty to get to
 }

@@ -58,7 +58,8 @@ public:
         float rotation = originalSprite.getRotation() * 3.14159f / 180.f;
         int cuts = static_cast<int>(rect.width * entitySizeScale * 1.3f);
         if (cuts < 2) cuts = 2;
-        if (cuts > originalSprite.getTexture()->getSize().y) cuts = originalSprite.getTexture()->getSize().y;
+        if (cuts > originalSprite.getTexture()->getSize().y)
+            cuts = originalSprite.getTexture()->getSize().y;
         float chunkW = static_cast<float>(rect.width) / cuts;
         float chunkH = static_cast<float>(rect.height) / cuts;
         for (int i = 0; i < cuts; ++i) {

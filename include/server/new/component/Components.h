@@ -89,7 +89,8 @@ struct Invincibility {  //mark for invincibility
 };
 struct EntityClearTag {};  //mark for clearing entity should be cleared
 struct FoodBall {
-    float nutrition;  //how much fp it can restore
+    float nutrition{};  //how much fp it can restore
+    float lifetime{300.f};  //auto disappear after time
 };
 struct NoNetControl {  //for player respawn interval
     float countDown = 4.f;

@@ -12,6 +12,7 @@ void CollisionSystem::update(float dt) {
             auto& cell = grid.cellAt(r, c);
             for (auto it = cell.entities.begin(); it != cell.entities.end(); ++it) {
                 Entity e1 = *it;
+                if (!coord_.hasSignature(e1, collisionSig_)) continue;
                 float size1 = coord_.getComponent<Size>(e1).size;
                 auto& trans1 = coord_.getComponent<Transform>(e1);
                 for (int dc = -1; dc <= 1; ++dc) {  //neighbor cells, we assert that an entity wouldn't cross more than 1 cell per frame
@@ -23,6 +24,7 @@ void CollisionSystem::update(float dt) {
                         if (!neighborCell.isAOI) continue; //not aoi
                         for (auto it2 = neighborCell.entities.begin(); it2 != neighborCell.entities.end(); ++it2) {
                             Entity e2 = *it2;
+                            if (!coord_.hasSignature(e1, collisionSig_)) continue;
                             if (e2 <= e1) continue;  //avoid duplicate check
                             float size2 = coord_.getComponent<Size>(e2).size;
                             auto& trans2 = coord_.getComponent<Transform>(e2);

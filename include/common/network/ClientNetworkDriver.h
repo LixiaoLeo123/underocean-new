@@ -114,6 +114,9 @@ public:
             }
         }
     }
+    void flush() {
+        enet_host_flush(clientHost_);
+    }
     std::unique_ptr<Packet> popPacket(int packetType) {  //caution: must update peer list
         if (packets_[packetType].empty()) {
             return nullptr;

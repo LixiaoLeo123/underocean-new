@@ -13,6 +13,7 @@
 #include "client/common/DeathEffectSystem.h"
 #include "client/common/InputManager.h"
 #include "client/common/IScene.h"
+#include "client/common/LightingSystem.h"
 #include "client/common/NetworkEntity.h"
 #include "client/common/PlayerEntity.h"
 #include "common/net(depricate)/PacketReader.h"
@@ -84,6 +85,8 @@ protected:
     sf::Shader& deathFilter_;
     sf::Shader& blur_;
     unsigned currentTick_ { 0 };
+    LightingSystem lightingSystem_;
+    sf::Color ambientLightColor_ { 255, 255, 255 };  //blue
 };
 inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight, float scale) {
     float windowRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
@@ -103,6 +106,7 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
         resetViewSize(event.size.width, event.size.height);
         correctView();
         playerStatus_.onWindowSizeChange(event.size.width, event.size.height);
+        lightingSystem_.onWindowResize(event.size.width, event.size.height);
     }
     chatBox_->handleEvent(event);
     if (!chatBox_->isOpen())

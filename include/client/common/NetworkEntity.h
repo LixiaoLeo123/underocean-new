@@ -46,6 +46,11 @@ public:
         velocity_ = {0.f, 0.f};
     }
     void setPos(sf::Vector2f pos){ setPos(pos.x, pos.y); }
+    void setLightProps(float radius, sf::Color color) {
+        lightRadius_ = radius;
+        lightColor_ = color;
+        hasLight_ = (radius > 0.01f);
+    }
     // server sends only position and server update interval
     void setNetworkState(const sf::Vector2f& pos, unsigned currentTick) {  //tick to avoid two state in one tick, causing inf velocity
         if (!hasNet_) {
@@ -91,6 +96,9 @@ public:
     void setSize(float size);
     [[nodiscard]] sf::Vector2f getPosition() const { return clientPos_; }
     [[nodiscard]] sf::Vector2f getVelocity() const { return velocity_; }
+    [[nodiscard]] bool hasLight() const { return hasLight_; }
+    [[nodiscard]] float getLightRadius() const { return lightRadius_; }
+    [[nodiscard]] sf::Color getLightColor() const { return lightColor_; }
 private:
     void updateHpBar(float dt);
     static sf::Vector2f lerp(const sf::Vector2f& a, const sf::Vector2f& b, float t) {
@@ -122,6 +130,9 @@ private:
     float hpDisplayTimer_{ 0.f };
     float currentHpPct_{ 1.f };
     constexpr static float HP_SHOW_DURATION{ 4.0f };
+    bool hasLight_ { false };
+    float lightRadius_ { 0.f };
+    sf::Color lightColor_ { 255, 255, 255 };
 };
 
 inline void NetworkEntity::setType(EntityTypeID type) {
@@ -131,13 +142,14 @@ inline void NetworkEntity::setType(EntityTypeID type) {
     frameHeight_ = sprite_.getTexture()->getSize().y;
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
     sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
+    sprite_.setTextureRect(sf::IntRect(0, 0, frameWidth_, frameHeight_));
 }
 
 inline void NetworkEntity::setSize(float size) {
     assert(sprite_.getTexture() && "Texture(type) must be set before setting size");
     size_ = size;
     float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
-    sprite_.setScale(scale, scale);
+    sprite_.setScale(scale, scale * (isFlipped ? -1.f : 1.f));
 }
 inline void NetworkEntity::setHpPercentage(float pct) {  //only color
     pct = std::clamp(pct, 0.f, 1.f);

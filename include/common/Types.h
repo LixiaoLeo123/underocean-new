@@ -8,6 +8,7 @@
 #include "net(depricate)/enet.h"
 #include <cmath>
 #include <vector>
+#include <SFML/Config.hpp>
 
 #include "server/new/others/HitBox.h"
 //x-macro
@@ -19,8 +20,11 @@ X(FLY_FISH) \
 X(BLUE_LONG) \
 X(RED_LIGHT) \
 X(UGLY_FISH) \
-X(SMALL_SHARK)
+X(SMALL_SHARK) \
+X(FOOD_BALL)
 #define PLAYER_ENTITY_TYPES \
+X(SMALL_YELLOW)
+#define LIGHT_ENTITY_TYPES \
 X(SMALL_YELLOW)
 using Entity = std::uint16_t;
 constexpr Entity MAX_ENTITIES = 16384;     //2048 byte
@@ -207,7 +211,7 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float SIZE_STEP = 0.2f;  //size increase step
     static constexpr float HP_BASE = 4.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
-    static constexpr float FP_DEC_RATE_BASE = 0.3f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
     static constexpr float ATTACK_DAMAGE_BASE = 100.f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
@@ -219,7 +223,12 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float AVOID_WEIGHT = 2.f;
     static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
     static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
-    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{1.f, 1.f} }; //relative to center, size1-based
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{0.5f, 0.5f} }; //relative to center, size1-based
+    static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::FOOD_BALL> {
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{0.5f, 0.5f} };
 };
 struct EntitySizeChangeEvent {
     Entity entity;
@@ -282,7 +291,8 @@ constexpr const char* getTexturePath(EntityTypeID type) {
         "images/fish/blue_long.png",      // BLUE_LONG
         "images/fish/red_light.png",      // RED_LIGHT
         "images/fish/ugly_fish.png",      // UGLY_FISH
-        "images/fish/small_shark.png"     // SMALL_SHARK
+        "images/fish/small_shark.png",     // SMALL_SHARK
+        "images/fish/none.png",           // FOOD_BALL (actually not used)
     };
     static_assert(sizeof(paths) / sizeof(paths[0]) == static_cast<size_t>(ET::COUNT),
                   "Texture path array size mismatch!");
@@ -299,7 +309,8 @@ constexpr int getTextureTotalFrame(EntityTypeID type) {
         2,  // BLUE_LONG
         2,  // RED_LIGHT
         2,  // UGLY_FISH
-        2   // SMALL_SHARK
+        2,   // SMALL_SHARK
+        1,  // FOOD_BALL (actually not used)
     };
     static_assert(sizeof(frames) / sizeof(frames[0]) == static_cast<size_t>(static_cast<EntityTypeID>(EntityTypeID::COUNT)),
                   "Texture frame array size mismatch!");

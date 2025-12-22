@@ -51,7 +51,7 @@ public:
         packet_.clear();
     }
 private:
-    static constexpr int MAX_PACKET_SIZE = 1024;
+    static constexpr int MAX_PACKET_SIZE = 512;
     std::vector<std::uint8_t> packet_;
 };
 #endif //UNDEROCEAN_PACKETWRITER_H
