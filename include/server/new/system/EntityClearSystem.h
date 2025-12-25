@@ -8,7 +8,7 @@
 #include "common/Types.h"
 #include "server/new/Coordinator.h"
 #include "server/new/component/Components.h"
-
+#include "server/new/EventBus.h"
 class Coordinator;
 
 class EntityClearSystem : public ISystem {

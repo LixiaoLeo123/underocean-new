@@ -46,6 +46,8 @@ add_executable(Underocean
         include/server/new/system/AttackingSystem.h
         src/AttackingSystem.cpp
         src/AudioManager.cpp
+        src/ClientFoodBall.cpp
+        src/CharacterSelectMenu.cpp
 )
 
 

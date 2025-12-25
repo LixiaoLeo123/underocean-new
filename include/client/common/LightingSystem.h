@@ -8,6 +8,8 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
+
 #include "client/common/ResourceManager.h"
 struct Obstacle {
     sf::FloatRect rect;
@@ -21,6 +23,10 @@ public:
     }
     void onWindowResize(unsigned width, unsigned height) {
         lightMap_.create(width, height);
+        // sf::View v;
+        // v.reset(sf::FloatRect(0.f, 0.f, float(width), float(height)));
+        // lightMap_.setView(v);
+        // lightShader_ = &ResourceManager::getShader("shaders/lightsource.frag");
     }
     void clear(sf::Color ambientColor) {
         lightMap_.clear(ambientColor);
@@ -50,16 +56,13 @@ public:
         circle.setPosition(screenPos);
         lightMap_.draw(circle, states);
     }
-
     void update(float dt) {
         totalTime_ += dt;
     }
-
     void display() {
         lightMap_.display();
     }
-
-    sf::Sprite getLightMapSprite() {
+    sf::Sprite getLightMapSprite() const {
         return sf::Sprite(lightMap_.getTexture());
     }
     constexpr static float getLightRadius(EntityTypeID type) {
@@ -86,8 +89,7 @@ private:
     std::vector<sf::FloatRect> obstacles_;
     float totalTime_ { 0.f };
     sf::CircleShape circle;
-    std::vector<sf::Vector2f>
-    calculateVisibilityPolygon(const sf::Vector2f& origin, float radius){
+    std::vector<sf::Vector2f> calculateVisibilityPolygon(const sf::Vector2f& origin, float radius){
         std::vector<float> angles;
         std::vector<sf::FloatRect> validObstacles;
         for (const auto& obs : obstacles_) {

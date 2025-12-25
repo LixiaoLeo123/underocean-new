@@ -95,6 +95,13 @@ struct FoodBall {
 struct NoNetControl {  //for player respawn interval
     float countDown = 4.f;
 };
+struct NameTag {
+    std::array<char, 16> name{};
+    NameTag() = default;
+    explicit NameTag(const char src[16]) {
+        std::memcpy(name.data(), src, 16);
+    }
+};
 inline Transform::Transform(UVector vec): x(vec.x), y(vec.y) {};
 inline Velocity::Velocity(UVector vec): vx(vec.x), vy(vec.y) {};
 inline Force::Force(UVector vec): ax(vec.x), ay(vec.y) {};

@@ -54,6 +54,7 @@ public:
     //for gore
     [[nodiscard]] const sf::Sprite& getSprite() const { return sprite_; }
     [[nodiscard]] const sf::Vector2f& getScale() const { return sprite_.getScale(); }
+    [[nodiscard]] float getSize() const { return cachedSize; }
 private:
     static constexpr float DEFAULT_RESISTANCE_FORCE_POW_TIMES = 2.f;  //f = k*v^?
     static constexpr float OVERSPEED_RESISTANCE_FORCE_POW_TIMES = 0.5f;  //f = k*v^?

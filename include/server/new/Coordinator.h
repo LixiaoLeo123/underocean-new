@@ -109,6 +109,9 @@ public:
         return id;
     }
     void destroyEntity(Entity entity) {
+        if (signatures[entity].none()) {
+            return;  //already destroyed
+        }
         for (auto& array : componentArrays) {
             if (array) {
                 array->EntityDestroyed(entity);
@@ -117,7 +120,7 @@ public:
         signatures[entity].reset();
         for (auto& pair : entitiesBySignature) {
             std::vector<Entity>& list = pair.second;
-            list.erase(std::remove(list.begin(), list.end(), entity), list.end());
+            std::erase(list, entity);
         }
         availableIds.push(entity);
     }

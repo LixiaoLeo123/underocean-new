@@ -48,13 +48,13 @@ public:
 
 private:
     Panel panel_;
-    bool viewInit_ = false;
     bool viewDirty_ = false;
     float WIDTH;
     float HEIGHT;
     inline void resetViewArea(unsigned winWidth, unsigned winHeight);
 protected:
     sf::View view_;
+    bool viewInit_ = false;
 };
 inline void LazyPanelScene::resetViewArea(unsigned winWidth, unsigned winHeight) {
     float windowRatio = static_cast<float>(winWidth) / static_cast<float>(winHeight);

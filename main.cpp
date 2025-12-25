@@ -8,28 +8,40 @@
 #include "server/GameServer.h"
 #include "server/core(deprecate)/GameData.h"
 //#define SERVER_ENV
-void startNetServer();
+void detachLocalServer();
 void showAnnoyingDog();
-int main() {
+int main(int argc, char* argv[]) {
     enet_initialize();
     if (!GameData::loadSettings()) {
         showAnnoyingDog();
         return 0;
     }
 #ifdef SERVER_ENV
-    GameServer server;
+    int port = 51015;
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "-port" && i + 1 < argc) {
+            port = std::atoi(argv[i + 1]);
+            if (port <= 0 || port > 65535) {
+                std::cerr << "Invalid port: " << argv[i + 1] << ". Using default port " << port << ".\n";
+                port = 3000;
+            }
+            break;
+        }
+    }
+    std::cout << "Starting server on port: " << port << "\n";
+    GameServer server(true, port);
     server.run();
 #else
     ResourceManager::preload();
-    startNetServer();
+    detachLocalServer();
     GameClient client;
     client.run();
 #endif
     enet_deinitialize();
 }
-void startNetServer() {
+void detachLocalServer() {
     std::thread serverThread([]() {
-        auto server = std::make_unique<GameServer>();
+        auto server = std::make_unique<GameServer>(false);
         server->run();
     });
     serverThread.detach();

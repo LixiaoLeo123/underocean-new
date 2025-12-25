@@ -10,6 +10,7 @@
 #include "PlayerStatus.h"
 #include "SkillBar.h"
 #include "client/common/ChatBox.h"
+#include "client/common/ClientFoodBall.h"
 #include "client/common/DeathEffectSystem.h"
 #include "client/common/InputManager.h"
 #include "client/common/IScene.h"
@@ -20,6 +21,7 @@
 #include "common/net(depricate)/PacketWriter.h"
 #include "common/network/ClientNetworkDriver.h"
 #include "server/new/component/Components.h"
+
 
 
 class LevelSceneBase : public IScene{
@@ -45,12 +47,59 @@ protected:
         sf::Color initialColor;
     };
     std::vector<DamagePopup> damagePopups_;
+    struct PauseMenu {
+        bool active = false;
+        sf::RectangleShape background;  //black, half-transparency
+        struct Button {
+            sf::Sprite sprite;
+            sf::Vector2f baseScale;
+            float currentScaleRatio = 1.0f;  //anim
+            sf::FloatRect bounds;
+            std::function<void()> onClick;
+        };
+        Button btnBack;
+        Button btnRetry;
+        Button btnResume;
+        const float BUTTON_SPACING = 5.0f;
+        const float BUTTON_Y_OFFSET = 0.0f;
+    } pauseMenu_;
+    void initPauseMenu();
+    void updatePauseMenu(float dt, const sf::Vector2f& mouseWorldPos);
+    void renderPauseMenu(sf::RenderWindow& window) const;
+    void handlePauseInput(const sf::Event& event, const sf::Vector2f& mouseWorldPos);
+    struct DialogueData {
+        std::string text;
+        std::string soundName;
+    };
+    struct DialogueSystem {
+        bool active = false;
+        bool canCloseOnEnter = false;
+        int currentDialogueIndex = 0;
+        std::vector<DialogueData> currentLines;
+        size_t currentLineIndex = 0;
+        std::string displayString;
+        std::string fullTargetString;
+        size_t charIndex = 0;
+        float typeTimer = 0.f;
+        const float TYPE_INTERVAL = 0.05f;
+        sf::RectangleShape bgBox; //ui
+        sf::Text textDrawable;
+        std::map<int, std::vector<DialogueData>> localDatabase;
+    } dialogueSystem_;
+    void initDialogueSystem();
+    void updateDialogueSystem(float dt);
+    void renderDialogueSystem(sf::RenderWindow& window);
+    void startDialogue(int index, bool canClose);
+    void advanceDialogue();
+    static std::string parseDialogueText(const std::string& raw);  //parse %xxx%
     DeathEffectSystem deathSystem_;
     sf::Sprite background_;
     sf::View view_ {};
     bool viewInit_ { false };  //not init
     std::shared_ptr<ChatBox> chatBox_;
     ClientCommonPlayerAttributes& playerAttributes_;
+    void spawnDamagePopup(float delta, const sf::Vector2f& pos);
+    void updateDamagePopups(float dt);
     void handleEntityStaticData();
     void handleEntityLeave();
     void handleEntityDynamic();
@@ -64,6 +113,7 @@ protected:
     void handleSkillPackets();  //including skill ready, skill end and skill apply
     void handlePlayerRespawn();
     void handleHPDelta();
+    void handleDialoguePacket();
     enum class State {
         GAMING,
         DEATH
@@ -77,7 +127,7 @@ private:
     float accDisRatio_ { -1.f };
     PlayerStatus playerStatus_ {};  //HP and FP indicator
 protected:
-    std::unordered_map<Entity, NetworkEntity> entities_;
+    std::unordered_map<Entity, std::unique_ptr<NetworkEntity>> entities_;
     PlayerEntity player;
     std::shared_ptr<ClientNetworkDriver> driver_;  //given by LevelSelectMenu
     PacketWriter writer_;  //reuse
@@ -86,7 +136,8 @@ protected:
     sf::Shader& blur_;
     unsigned currentTick_ { 0 };
     LightingSystem lightingSystem_;
-    sf::Color ambientLightColor_ { 255, 255, 255 };  //blue
+    sf::Color ambientLightColor_ { 168, 168, 188 };  //blue
+    std::vector<ClientFoodBall> foodBalls_;
 };
 inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight, float scale) {
     float windowRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
@@ -100,6 +151,21 @@ inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowH
     }
 }
 inline void LevelSceneBase::handleEvent(const sf::Event &event) {
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Q) {
+        if (!chatBox_->isOpen() && !dialogueSystem_.active && state_ != State::DEATH) {
+            pauseMenu_.active = !pauseMenu_.active;
+        }
+    }
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+        startDialogue(1, true);
+    }
+    handlePauseInput(event, InputManager::getInstance().mousePosWorld);
+    if (dialogueSystem_.active) {
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
+            advanceDialogue();
+        }
+        //return;
+    }
     // if event is window resize, adjust sf::View, to maintain its ratio same as the window
     // while keeping inside VIEW_WIDTH and VIEW_HEIGHT with max size
     if (event.type == sf::Event::Resized) {
@@ -108,9 +174,11 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
         playerStatus_.onWindowSizeChange(event.size.width, event.size.height);
         lightingSystem_.onWindowResize(event.size.width, event.size.height);
     }
-    chatBox_->handleEvent(event);
-    if (!chatBox_->isOpen())
-        skillBar_.handleEvent(event);
+    if (!pauseMenu_.active) {
+        chatBox_->handleEvent(event);
+        if (!chatBox_->isOpen())
+            skillBar_.handleEvent(event);
+    }
 }
 inline void LevelSceneBase::correctView() {
     if (view_.getCenter().x < view_.getSize().x / 2)

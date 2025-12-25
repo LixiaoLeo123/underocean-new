@@ -9,7 +9,7 @@
 #include "common/Types.h"
 #include "common/net(depricate)/enet.h"
 using namespace ServerTypes;
-//two channels, 1 for message, 0 for others
+//two channels, 1 for unreliable, 0 for reliable
 class ServerNetworkDriver {   //receive packet, send packet and distribute by channels, responsible for handle packet type
 public:
     ServerNetworkDriver() : serverHost_(nullptr) {}
@@ -18,11 +18,14 @@ public:
             enet_host_destroy(serverHost_);
         }
     }
-    bool listen(int port) {
+    bool listen(int port, bool isLocal = true) {
         ENetAddress address;
-        enet_address_set_host(&address, "127.0.0.1");
-        //address.host = ENET_HOST_ANY;
+        if (isLocal)
+            enet_address_set_host(&address, "127.0.0.1");
+        else
+            address.host = ENET_HOST_ANY;
         address.port = static_cast<enet_uint16>(port);
+
         serverHost_ = enet_host_create(&address, SERVER_MAX_CONNECTIONS, 2, 0, 0);
         if (serverHost_ == nullptr) {
             DWORD err = WSAGetLastError();
@@ -31,6 +34,20 @@ public:
         }
         // enet_host_set_checksum_callback(serverHost_, enet_crc32); if crc32 needed
         return true;
+    }
+    int listenOnAnyPort() {
+        ENetAddress address;
+        enet_address_set_host(&address, "127.0.0.1");
+        //address.host = ENET_HOST_ANY;
+        address.port = static_cast<enet_uint16>(0);
+        serverHost_ = enet_host_create(&address, SERVER_MAX_CONNECTIONS, 2, 0, 0);
+        if (serverHost_ == nullptr) {
+            DWORD err = WSAGetLastError();
+            std::cerr << "enet_host_create failed. WSA Error: " << err << " " << address.port << std::endl;
+            return 0;
+        }
+        // enet_host_set_checksum_callback(serverHost_, enet_crc32); if crc32 needed
+        return serverHost_->address.port;
     }
     void send(const Packet* packet, ENetPeer* peer, int channel, int packetType, bool reliable = false) {  //NOTE: packetType must be valid
         if (!peer) return;
@@ -47,7 +64,7 @@ public:
             std::memcpy(enetPacket->data + 1, packet->data(), payloadSize);
         }
         enet_peer_send(peer, channel, enetPacket);
-        flush();
+        // flush();
     }
     void flush() {
         enet_host_flush(serverHost_);

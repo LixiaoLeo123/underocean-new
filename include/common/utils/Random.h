@@ -51,7 +51,7 @@ inline sf::Vector2f Random::randUnitVector() {
     float angle = angleDist(generator());
     return { std::cos(angle), std::sin(angle) };
 }
-inline sf::Vector2f fastRandomUnitVector() {
+inline sf::Vector2f Random::fastRandUnitVector() {
     static uint32_t s = 0x12345678u;
     s ^= s << 13;
     s ^= s >> 17;

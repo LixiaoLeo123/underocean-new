@@ -11,9 +11,12 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include "ResourceManager.h"
 #include "common/Types.h"
+#include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 
 class NetworkEntity {
 public:
+    virtual ~NetworkEntity() = default;
     NetworkEntity()
     : clientPos_(0.f, 0.f), prevNetPos_(0.f,0.f), netPos_(0.f,0.f),
       velocity_(0.f,0.f),
@@ -29,11 +32,41 @@ public:
     //for gore
     [[nodiscard]] const sf::Sprite& getSprite() const { return sprite_; }
     [[nodiscard]] const sf::Vector2f& getScale() const { return sprite_.getScale(); }
-    void render(sf::RenderWindow& window) const {
-        window.draw(sprite_);
+    virtual void render(sf::RenderWindow& window) {
+        if (hurtFlash_ > 0.f && hurtShader_) {
+            hurtShader_->setUniform("u_flash", hurtFlash_);
+            sf::RenderStates states;
+            states.shader = hurtShader_;
+            window.draw(sprite_, states);
+        } else {
+            window.draw(sprite_);
+        }
         if (hpDisplayTimer_ > 0.f) {
             window.draw(hpBarBg_);
             window.draw(hpBarFill_);
+        }
+        sf::FloatRect textBounds = nameText_.getLocalBounds();
+        sf::Vector2f basePos = sprite_.getPosition();
+        if (hasNameTag_) {
+            float yOffset = sprite_.getGlobalBounds().height / 2.f + nameTagYOffset_;
+            sf::Vector2f textPos(
+                basePos.x - textBounds.width / 2.f,
+                basePos.y - yOffset - textBounds.height
+            );
+            constexpr float paddingX = 0.1f;
+            constexpr float paddingY = 0.02f;
+            nameBg_.setSize({
+                textBounds.width + paddingX * 2.f,
+                textBounds.height + paddingY * 2.f
+            });
+            nameBg_.setOrigin(0.f, 0.f);
+            nameBg_.setPosition(
+                textPos.x - paddingX,
+                textPos.y - paddingY
+            );
+            nameText_.setPosition(textPos);
+            window.draw(nameBg_);
+            window.draw(nameText_);
         }
     }
     // Immediate local placement (no interpolation)
@@ -68,7 +101,7 @@ public:
         }
         if (lastTick_ != currentTick) {
             if (interpTimer_ > 0.001f)
-                velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
+                velocity_ = (pos - netPos_) / interpTimer_;
             prevNetPos_ = netPos_;
             netPos_ = pos;
             interpTimer_ = 0.f;
@@ -76,17 +109,21 @@ public:
         else {
             netPos_ = pos;
             if (interpTimer_ > 0.001f)
-                velocity_ = (netPos_ - prevNetPos_) / interpTimer_;
+                velocity_ = (pos - prevNetPos_) / interpTimer_;
         }
         hasPrevNet_ = true;
         lastTick_ = currentTick;
     }
     // Call each frame with delta time in seconds
-    void update(float dt) {
+    virtual void update(float dt) {
         updatePos(dt);
         updateAngle();
         updateAnim(dt);
         updateHpBar(dt);
+        if (hurtFlash_ > 0.f) {
+            hurtFlash_ -= hurtFlashDecay_ * dt;
+            if (hurtFlash_ < 0.f) hurtFlash_ = 0.f;
+        }
     }
     void setHpPercentage(float pct);
     void updatePos(float dt);
@@ -94,11 +131,18 @@ public:
     void updateAnim(float dt);
     void setType(EntityTypeID type);
     void setSize(float size);
+    void setNameTag(const std::string& name);
+    void clearNameTag() { hasNameTag_ = false; }
+    void triggerHurtFlash(float strength = 1.f) {
+        hurtFlash_ = std::min(1.f, hurtFlash_ + strength);
+    }
     [[nodiscard]] sf::Vector2f getPosition() const { return clientPos_; }
     [[nodiscard]] sf::Vector2f getVelocity() const { return velocity_; }
     [[nodiscard]] bool hasLight() const { return hasLight_; }
     [[nodiscard]] float getLightRadius() const { return lightRadius_; }
     [[nodiscard]] sf::Color getLightColor() const { return lightColor_; }
+    [[nodiscard]] EntityTypeID getType() const { return type_; }
+    [[nodiscard]] virtual bool isDead() const { return false; }
 private:
     void updateHpBar(float dt);
     static sf::Vector2f lerp(const sf::Vector2f& a, const sf::Vector2f& b, float t) {
@@ -132,6 +176,17 @@ private:
     constexpr static float HP_SHOW_DURATION{ 4.0f };
     bool hasLight_ { false };
     float lightRadius_ { 0.f };
+    EntityTypeID type_{};
+    //nameTag
+    bool hasNameTag_ = false;
+    sf::Text nameText_;
+    sf::RectangleShape nameBg_;
+    float nameTagYOffset_ = 0.f;
+    // hurt flash
+    float hurtFlash_ = 0.f;  //current intensity
+    float hurtFlashDecay_ = 6.f;  //decreasing rate
+    sf::Shader* hurtShader_ { &ResourceManager::getShader("shaders/hurtflash.frag") };
+protected:
     sf::Color lightColor_ { 255, 255, 255 };
 };
 
@@ -143,6 +198,7 @@ inline void NetworkEntity::setType(EntityTypeID type) {
     frameWidth_ = sprite_.getTexture()->getSize().x / totalFrames_;   //assume horizontal strip
     sprite_.setOrigin(static_cast<float>(frameWidth_) / 2.f, static_cast<float>(frameHeight_) / 2.f);
     sprite_.setTextureRect(sf::IntRect(0, 0, frameWidth_, frameHeight_));
+    type_ = type;
 }
 
 inline void NetworkEntity::setSize(float size) {
@@ -150,6 +206,7 @@ inline void NetworkEntity::setSize(float size) {
     size_ = size;
     float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
     sprite_.setScale(scale, scale * (isFlipped ? -1.f : 1.f));
+    nameTagYOffset_ = size * 0.75f;
 }
 inline void NetworkEntity::setHpPercentage(float pct) {  //only color
     pct = std::clamp(pct, 0.f, 1.f);
@@ -208,18 +265,19 @@ inline void NetworkEntity::updatePos(float dt) {
     interpTimer_ += dt;
     constexpr float ALPHA = 0.4f;  //smoothing factor, less is smoother
     sf::Vector2f target;
-    if (interpTimer_ <= SERVER_DT_) {
-        target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
-    }
-    else {
-        float extra = interpTimer_ - SERVER_DT_;
-        target = netPos_ + velocity_ * extra;
-    }
+    target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
+    // if (interpTimer_ <= SERVER_DT_ * 1.25f) {
+    //     target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
+    // }
+    // else {
+    //     float extra = interpTimer_ - SERVER_DT_;
+    //     target = netPos_ + velocity_ * extra;
+    // }
     clientPos_ += (target - clientPos_) * ALPHA;
     sprite_.setPosition(clientPos_);
 }
 inline void NetworkEntity::updateAngle() {
-    if (velocity_.x * velocity_.x + velocity_.y * velocity_.y < ANGLE_UPDATE_SPEED2_THRESHOLD) return; // no movement, no rotation
+    if (velocity_.x * velocity_.x + velocity_.y * velocity_.y < ANGLE_UPDATE_SPEED2_THRESHOLD) return; //no movement, no rotation
     float angle = std::atan2(velocity_.y, velocity_.x) * 180.f / 3.14159265f;
     float current = sprite_.getRotation();
     float delta = angle - current;
@@ -246,5 +304,14 @@ inline void NetworkEntity::updateAnim(float dt) {
     animTimer += dt;
     unsigned frame = static_cast<unsigned>(animTimer / frameInterval_) % totalFrames_;
     sprite_.setTextureRect(sf::IntRect(frame * frameWidth_, 0, frameWidth_, frameHeight_));
+}
+inline void NetworkEntity::setNameTag(const std::string& name) {
+    hasNameTag_ = true;
+    nameText_.setFont(ResourceManager::getFont("fonts/font6.ttf"));
+    nameText_.setString(name);
+    nameText_.setCharacterSize(10);
+    nameText_.setFillColor(sf::Color::White);
+    nameText_.setOutlineThickness(0.f);
+    nameBg_.setFillColor(sf::Color(50, 50, 50, 160));
 }
 #endif // UNDEROCEAN_NETWORKENTITY_H

@@ -25,7 +25,7 @@ X(FOOD_BALL)
 #define PLAYER_ENTITY_TYPES \
 X(SMALL_YELLOW)
 #define LIGHT_ENTITY_TYPES \
-X(SMALL_YELLOW)
+X(FOOD_BALL)
 using Entity = std::uint16_t;
 constexpr Entity MAX_ENTITIES = 16384;     //2048 byte
 using ComponentType = std::uint8_t;
@@ -37,7 +37,7 @@ constexpr float ENTITY_MAX_HP = 2048.f;
 constexpr float ENTITY_MAX_FP = 2048.f;
 constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
 constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
-constexpr float MAX_HP_DELTA = 512.f;
+constexpr float MAX_HP_DELTA = 1024.f;
 constexpr std::uint8_t ltonSize8(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
@@ -80,11 +80,13 @@ constexpr std::uint16_t ltonAcc(float acc) {    //local fp to net fp
 constexpr float ntolAcc(std::uint16_t netAcc) {   //net fp to local fp
     return static_cast<float>(netAcc) / 65535.f * PLAYER_MAX_MAX_ACC;
 }
-constexpr std::uint16_t ltonHPDelta(float delta) {    //local fp to net fp
-    return static_cast<std::uint16_t>(std::round((delta / MAX_HP_DELTA + 1) * 65535.f));
+constexpr std::uint16_t ltonHPDelta(float delta) {
+    return static_cast<std::uint16_t>(
+        std::round((delta + MAX_HP_DELTA) / (2.0f * MAX_HP_DELTA) * 65535.0f)
+    );
 }
-constexpr float ntolHPDelta(std::uint16_t netDelta) {   //net fp to local fp
-    return static_cast<float>(netDelta) / 65535.f * (1 + MAX_HP_DELTA);
+constexpr float ntolHPDelta(std::uint16_t netDelta) {
+    return (static_cast<float>(netDelta) / 65535.0f) * (2.0f * MAX_HP_DELTA) - MAX_HP_DELTA;
 }
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
@@ -107,13 +109,16 @@ namespace ServerTypes {  //packet that server handle
         //1 byte signed int for skill index(relative 0, 1, 2, 3) or other actions
         PKT_LOGIN = 6,
         // char[16] playerId; uint8 type; uint16 size, uint16 hp, uint16 fp, 4 byte skill level, total 27 byte
+        PKT_REQUEST_STOP = 7, //reliable, for stop whole server logic except networking, 0 byte
+        PKT_REQUEST_RESUME = 8, //reliable, for resume, 0 byte
         COUNT
     };
 }
 namespace ClientTypes {  //packet that client handle
     enum PacketType : std::uint8_t {
         PKT_ENTITY_STATIC_DATA = 0,  //for entity first enter aoi, reliable
-        //2 entityID 1 type 1 size 2 netX 2 netY = 8 byte * n
+        //2 entityID 1 type 1 size 2 netX 2 netY 1 id flag(0-no id, 1-has id) + 16 byte id if has id
+        //9 or 25 byte per entity
         PKT_ENTITY_DYNAMIC_DATA = 1, //for entity transform update, unreliable
         //2 entityID 2 netX 2 netY * n
         PKT_ENTITY_LEAVE = 2,   //for entity leave aoi, reliable
@@ -137,6 +142,8 @@ namespace ClientTypes {  //packet that client handle
         PKT_ENTITY_HP_DELTA,  //unreliable, 2 byte entityID, 2 byte delta * n
         PKT_PLAYER_RESPAWN, //reliable, 0 byte
         PKG_FINISH_LOGIN, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, 4 byte for skill indices, total 12 byte
+        //PKT_FOOD_BALL_ABSORBED, //reliable, 2 byte entityID, 2 byte target x n
+        PKT_DIALOGUE_EVENT, //reliable, 1 byte type(start/end), 2 byte dialogIndex, 1 byte if it can be closed by enter, total 4 byte/1byte
         COUNT
     };
 }
@@ -150,7 +157,7 @@ namespace ClientTypes {  //packet that client handle
 //     }
 // }
 constexpr int SERVER_MAX_CONNECTIONS = 32;
-constexpr int SERVER_MAX_BUFFER_SIZE = 100; //100 packets in buffer max! in GameServer
+constexpr int SERVER_MAX_BUFFER_SIZE = 65535; //100 packets in buffer max! in GameServer
 constexpr int NET_MAX_CACHED_PACKETS = 65535; //total in driver
 constexpr int HEARTBEAT_INTERVAL = 5000;  //by milliseconds
 constexpr int PING_TIMES = 128;   //times that tried to ack
@@ -205,14 +212,14 @@ template<EntityTypeID ID>
 struct ParamTable;
 template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MAX_VELOCITY = 8.f;
-    static constexpr float MAX_FORCE = 60.f;
+    static constexpr float MAX_FORCE = 320.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
     static constexpr float SIZE_STEP = 0.2f;  //size increase step
-    static constexpr float HP_BASE = 4.f;  //hp proportional to size
+    static constexpr float HP_BASE = 2.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
-    static constexpr float ATTACK_DAMAGE_BASE = 100.f;  //base damage
+    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -223,12 +230,14 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float AVOID_WEIGHT = 2.f;
     static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
     static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
-    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{0.5f, 0.5f} }; //relative to center, size1-based
-    static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
-    static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
 };
 template<> struct ParamTable<EntityTypeID::FOOD_BALL> {
-    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{0.5f, 0.5f} };
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{2.5f, 2.5f} };
+    static constexpr float LIGHT_RADIUS = 2.4f;  //light radius
+    static constexpr sf::Uint8 LIGHT_COLOR[3] = {255, 255, 255};  //light color
 };
 struct EntitySizeChangeEvent {
     Entity entity;

@@ -25,5 +25,6 @@ Coordinator::Coordinator(){
     registerComponent<FoodBall>();
     registerComponent<NoNetControl>();
     registerComponent<FoodBall>();
+    registerComponent<NameTag>();
     registerSystem(Signature{});  //empty to get to
 }

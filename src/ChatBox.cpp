@@ -273,7 +273,7 @@ void ChatBox::render(sf::RenderWindow& window) {
 }
 void ChatBox::handleEvent(const sf::Event& event) {
     if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::Escape) {
+        if (event.key.code == sf::Keyboard::Q) {
             close();
             return;
         }
@@ -291,7 +291,7 @@ void ChatBox::handleEvent(const sf::Event& event) {
             if (!inputBuffer_.empty()) {
                 std::string str = "&f<" + selfName_ + "> " + inputBuffer_;
                 packetWriter_.writeStr(str.data(), str.size());
-                driver_.send(packetWriter_.takePacket(), 1, ServerTypes::PacketType::PKT_MESSAGE, true);
+                driver_.send(packetWriter_.takePacket(), 0, ServerTypes::PacketType::PKT_MESSAGE, true);
                 packetWriter_.clearBuffer();
                 inputBuffer_.clear();
                 close();

@@ -3,6 +3,7 @@
 #include "client/common/ChatBox.h"
 #include "client/common/ResourceManager.h"
 #include "client/scenes/levelscenes/LevelScene1.h"
+#include "client/scenes/startmenu/StartMenu.h"
 #include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
 #define LEVEL_BUTTON_SIZE sf::Vector2f(WIDTH * 0.3f,HEIGHT * 0.35f)
@@ -62,6 +63,7 @@ LevelSelectMenu::LevelSelectMenu(const std::shared_ptr<SmoothTextLabel> &title, 
     networkDriver_->setOnDisconnect([this](){
         this->handleDisconnect();
     });
+    chatBox_->addMessage("&a[Debug] &fConnecting to server at &l" + ip + ":" + std::to_string(port) + " &r&b&ka");
 }
 void LevelSelectMenu::reloadUI() {
     if (GameData::currentLevel < 4) {
@@ -78,12 +80,12 @@ void LevelSelectMenu::reloadUI() {
     for (int i = 0; i < GameData::currentLevel; ++i) {            //grey for locked
         levelButtons_[i]->setTexture(
             ResourceManager::getTexture("images/icons/glevel" + std::to_string(i + 1) + ".png"),
-            ResourceManager::getTexture("images/icons/glevel" + std::to_string(i + 1) + ".png"));
+            ResourceManager::getTexture("images/icons/level" + std::to_string(i + 1) + ".png"));
     }
     for (int i = GameData::currentLevel; i < 6; ++i) {            //grey for locked
         levelButtons_[i]->setTexture(
             ResourceManager::getTexture("images/icons/glevel" + std::to_string(i + 1) + ".png"),
-            ResourceManager::getTexture("images/icons/level" + std::to_string(i + 1) + ".png"));
+            ResourceManager::getTexture("images/icons/glevel" + std::to_string(i + 1) + ".png"));
     }
     for (int i = 0; i < 6; ++i) {  //add callback
         if (i < GameData::currentLevel) {
@@ -122,6 +124,7 @@ void LevelSelectMenu::handleMessagePacket() {
 void LevelSelectMenu::update(float dt) {
     if (shouldReloadUI) {
         reloadUI();
+        viewInit_ = false;
         shouldReloadUI = false;
     }
     obj0_.update(dt);
@@ -151,8 +154,22 @@ void LevelSelectMenu::render(sf::RenderWindow &window) {
 }
 void LevelSelectMenu::handleEvent(const sf::Event &event) {
     LazyPanelScene::handleEvent(event);
-    if (!chatBox_->isOpen())
+    if (!chatBox_->isOpen()) {
         getPanel().handleEvent(event);
+        if (event.type == sf::Event::KeyPressed) {
+            if (event.key.code == sf::Keyboard::Q) {
+                //back to main menu
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Replace,
+                    std::make_unique<StartMenu>(title_, true),
+                    0,
+                    2
+                };
+                onRequestSwitch_(request);
+                return;
+            }
+        }
+    }
     statusIndicator_.adjustBound(view_);
     chatBox_->handleEvent(event);
     // if (event.type == sf::Event::Resized) {

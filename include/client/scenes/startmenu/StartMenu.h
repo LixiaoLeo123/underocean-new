@@ -36,6 +36,7 @@ public:
 	}
 	void onClickSinglePlayer();
 	void onClickMultiPlayer();
+	void onClickCharacters();
 	void handleSwitchRequest(SceneSwitchRequest &req) override {
 		if (req.action == SceneSwitchRequest::None && req.extra == 2) {   //back, reset title
 			titleSmooth_ = true;

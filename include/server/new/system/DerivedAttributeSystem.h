@@ -47,8 +47,8 @@ public:
     void initEntityAttributes(const AttributedEntityInitEvent& event) const;  //from size to attributes, add components
     static float calcAttackDamage(EntityTypeID type, float size) {
         switch (type) {
-#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::ATTACK_DAMAGE_BASE * size * size \
-            / ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::ATTACK_DAMAGE_BASE * std::pow(size \
+            / ParamTable<EntityTypeID::type>::INIT_SIZE, 0.9); break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;
@@ -56,7 +56,8 @@ public:
     }
     static float calcMaxHP(EntityTypeID type, float size) {
         switch (type) {
-#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::HP_BASE / ParamTable<EntityTypeID::type>::INIT_SIZE * size; break;
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::HP_BASE * std::pow(size \
+/ ParamTable<EntityTypeID::type>::INIT_SIZE, 0.9); break;
         ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;
@@ -64,8 +65,8 @@ public:
     }
     static float calcMaxFP(EntityTypeID type, float size) {
         switch (type) {
-#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::FP_BASE * size * size \
-            / ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::FP_BASE * std::pow(size \
+/ ParamTable<EntityTypeID::type>::INIT_SIZE, 1.1); break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;
@@ -73,8 +74,8 @@ public:
     }
     static float calcMass(EntityTypeID type, float size) {
         switch (type) {
-#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::MASS_BASE * size * size \
-            / ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::MASS_BASE * std::pow(size \
+/ ParamTable<EntityTypeID::type>::INIT_SIZE, 2); break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;
@@ -82,8 +83,8 @@ public:
     }
     static float calcFPDecRate(EntityTypeID type, float size) {
         switch (type) {
-#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::FP_DEC_RATE_BASE * size * size * size\
-/ ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE / ParamTable<EntityTypeID::type>::INIT_SIZE; break;
+#define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::FP_DEC_RATE_BASE  * std::pow(size \
+/ ParamTable<EntityTypeID::type>::INIT_SIZE, 1.7); break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;
@@ -169,6 +170,9 @@ inline void DerivedAttributeSystem::onPlayerRespawn(const PlayerRespawnEvent &ev
     });
 }
 inline void DerivedAttributeSystem::onEntityDeath(const EntityDeathEvent &event) const {
+    if (coord_.getComponent<EntityType>(event.entity).entityID == EntityTypeID::FOOD_BALL) {
+        return;  //food ball do not drop food ball
+    }
     auto& transform = coord_.getComponent<Transform>(event.entity);
     EntityTypeID type = coord_.getComponent<EntityType>(event.entity).entityID;
     float size = coord_.getComponent<Size>(event.entity).size;
@@ -190,8 +194,7 @@ inline void DerivedAttributeSystem::onEntityCollision(const EntityCollisionEvent
             auto& fpComp = coord_.getComponent<FP>(e2);
             auto& foodComp = coord_.getComponent<FoodBall>(e1);
             fpComp.fp += foodComp.nutrition;
-            coord_.addComponent<EntityClearTag>(e1, {});
-            coord_.notifyEntityChanged(e1);
+            eventBus_.publish<EntityDeathEvent>({e1});
         }
     };
     handleFPIncrease(event.e1, event.e2);

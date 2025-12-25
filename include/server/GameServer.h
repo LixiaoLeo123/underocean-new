@@ -25,6 +25,7 @@ private:
     static bool isLevelLegal(int level){ return (level >= 0 && level < levelNum); }
     ServerNetworkDriver networkDriver_;
     PacketWriter writer;   //unified packet writer to reduce allocation
+    bool isMultiplePlayer_;
     void handleConnectionPacket();
     void tryRemovePlayer(ENetPeer* peer);
     void handleLoginPacket();
@@ -32,15 +33,18 @@ private:
     void handleMessagePacket();  //only distribute, broadcast. in channel 1
     void handleTransformPacket();   //net pos, need to be converted by level
     void handleActionPacket();
+    void handleRequestStopAndResumePacket();
     void broadcast(std::string message);   //better under 1024 bytes
 public:
-    explicit GameServer();
+    explicit GameServer(bool isMultiplePlayer, int port = 0);
     GameServer(const GameServer&) = delete;
     GameServer& operator=(const GameServer&) = delete;
     std::unordered_map<ENetPeer*, PlayerData> playerList_;
     std::unordered_map<ENetPeer*, std::queue<std::unique_ptr<Packet>>> buffer_;  //maybe only for actions
     PacketWriter writer_ {};  //reuse
+    bool isStopped{};  //only for single player
     [[nodiscard]] PacketWriter& getPacketWriter() { return writer; }
+    [[nodiscard]] bool isMultiplePlayer() const { return isMultiplePlayer_; }
     void update(float dt) {
         networkDriver_.pollPackets();
         handleConnectionPacket();   //CAUTION: may cause peer existence change!
@@ -49,8 +53,13 @@ public:
         handleMessagePacket();
         handleTransformPacket();
         handleActionPacket();   //add to buffer_
-        for (auto& level : levels_) {
-            level->update(dt);
+        if (isMultiplePlayer_) {
+            handleRequestStopAndResumePacket();
+        }
+        if (!isStopped) {
+            for (auto& level : levels_) {
+                level->update(dt);
+            }
         }
     }
     [[nodiscard]] ServerNetworkDriver& getNetworkDriver() { return networkDriver_; }
@@ -71,19 +80,42 @@ public:
         }
     }
 };
+inline void GameServer::handleRequestStopAndResumePacket() {
+    while (networkDriver_.hasPacket(PKT_REQUEST_STOP)) {
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_REQUEST_STOP));
+        ENetPeer* peer = namedPacket->peer;
+        auto it = playerList_.find(peer);
+        if (it == playerList_.end()) continue;  //dont exist
+        if (!isMultiplePlayer_) {
+            isStopped = true;
+            std::cout << "Server stopped by " << it->second.playerId << std::endl;
+        }
+    }
+    while (networkDriver_.hasPacket(PKT_REQUEST_RESUME)) {
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_REQUEST_RESUME));
+        ENetPeer* peer = namedPacket->peer;
+        auto it = playerList_.find(peer);
+        if (it == playerList_.end()) continue;  //dont exist
+        if (!isMultiplePlayer_) {
+            isStopped = false;
+            std::cout << "Server resumed by " << it->second.playerId << std::endl;
+        }
+    }
+}
 inline void GameServer::handleConnectionPacket() {  //connect or disconnect
-    while (networkDriver_.hasPacket(PKT_CONNECT)) {  //handle messages
+    while (networkDriver_.hasPacket(PKT_CONNECT)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_CONNECT));
         ENetPeer* peer = namedPacket->peer;
         playerList_[peer] = PlayerData{};
         buffer_.try_emplace(peer);
         levels_[0]->onPlayerJoin(playerList_[peer]);
+        std::cout << "New connection established from port: " << peer->address.port << std::endl;
     }
-    while (networkDriver_.hasPacket(PKT_DISCONNECT)) {  //handle messages
+    while (networkDriver_.hasPacket(PKT_DISCONNECT)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_DISCONNECT));
         ENetPeer* peer = namedPacket->peer;
         tryRemovePlayer(peer);
-        break;
+        std::cout << "Connection from port " << peer->address.port << " disconnected" << std::endl;
     }
 }
 inline void GameServer::tryRemovePlayer(ENetPeer* peer) {
@@ -110,13 +142,14 @@ inline void GameServer::handleLevelChangePacket() {
         it->second.currentLevel = to;
         levels_[to]->onPlayerJoin(playerList_[it->second.peer]);
         buffer_[peer] = std::queue<std::unique_ptr<Packet>>{}; //clear buffer
+        std::cout << "Player " << it->second.playerId << " changed to level " << to << std::endl;
     }
 }
 inline void GameServer::handleMessagePacket() {  //only distribute, broadcast
     while (networkDriver_.hasPacket(PKT_MESSAGE)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_MESSAGE));
         for (auto pair : playerList_) {
-            networkDriver_.send(&namedPacket->packet, pair.first, 1, ClientTypes::PKT_MESSAGE, true);
+            networkDriver_.send(&namedPacket->packet, pair.first, 0, ClientTypes::PKT_MESSAGE, true);
         }
     }
 }
@@ -125,7 +158,7 @@ inline void GameServer::broadcast(std::string message) {
     std::vector<std::uint8_t> packet;
     packet.insert(packet.end(), message.begin(), message.end());
     for (auto pair : playerList_) {
-        networkDriver_.send(&packet, pair.first, 1, ClientTypes::PKT_MESSAGE, true);
+        networkDriver_.send(&packet, pair.first, 0, ClientTypes::PKT_MESSAGE, true);
     }
 }
 inline void GameServer::handleTransformPacket() {

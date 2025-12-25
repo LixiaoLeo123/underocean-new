@@ -19,7 +19,7 @@ public:
     ClientNetworkDriver() : clientHost_(nullptr), serverPeer_(nullptr) {}
     ~ClientNetworkDriver() {
         if (serverPeer_) {
-            enet_peer_disconnect(serverPeer_, 0);
+            enet_peer_disconnect_now(serverPeer_, 0);
         }
         if (clientHost_) {
             enet_host_destroy(clientHost_);
@@ -58,6 +58,11 @@ public:
         enet_peer_send(serverPeer_, channel, enetPacket);
     }
     bool reconnect() {
+        if (clientHost_) {
+            enet_host_destroy(clientHost_);
+            clientHost_ = nullptr;
+        }
+        serverPeer_ = nullptr;
         clientHost_ = enet_host_create(nullptr, 1, 2, 0, 0);
         if (clientHost_ == nullptr) {
             return false;
@@ -71,11 +76,17 @@ public:
         // enet_peer_throttle_configure(serverPeer_, 0, 0, 0);
         return true;
     }
+    void clearPackets() {
+        for (auto& q : packets_) {
+            while (!q.empty()) q.pop();
+        }
+    }
     void pollPacket() { //read buffer, distribute by types and try reconnecting, and maintain heartbeat
         if ((!serverPeer_ || serverPeer_->state == ENET_PEER_STATE_DISCONNECTED) && reconnectTimer_.getElapsedTime().asSeconds() > RECONNECT_THRESHOLD) {
             reconnectTimer_.restart();
             reconnect();
         }
+        if (!clientHost_) return;
         ENetEvent event;
         while (enet_host_service(clientHost_, &event, 0) > 0) {
             switch (event.type) {
@@ -103,11 +114,12 @@ public:
                     event.peer->data = nullptr;
                     serverPeer_ = nullptr;
                     connected_ = false;
-                    onDisConnect_();
+                    clearPackets();
+                    if (onDisConnect_) onDisConnect_();
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
                     connected_ = true;
-                    onConnect_();
+                    if (onConnect_) onConnect_();
                     break;
                 default:
                     break;

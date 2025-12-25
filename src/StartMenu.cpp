@@ -6,6 +6,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <utility>
 #include "client/common/ResourceManager.h"
+#include "client/scenes/CharacterSelectMenu/CharacterSelectMenu.h"
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 #include "client/ui/layouts/LazyLayout.h"
 #include "client/ui/widgets/TextButton.h"
@@ -25,7 +26,7 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
     background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg1/bg1.png"));
     titleSmooth_ = titleSmooth;
     {
-        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.52f);
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.48f);
         sf::Text characterText("Single Player", font1_, 24);
         std::shared_ptr<TextButton> singlePlayerB = std::make_shared<TextButton>(pos, WIDTH / 20, std::move(characterText),false);
         singlePlayerB->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
@@ -35,7 +36,7 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
         selectPanel_.add(singlePlayerB);
     }
     {
-        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.75f);
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.76f);
         sf::Text characterText("Multiple Player", font1_, 24);
         std::shared_ptr<TextButton> multiPlayerB = std::make_shared<TextButton>(pos, WIDTH / 20, std::move(characterText),false);
         multiPlayerB->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
@@ -43,6 +44,25 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
             this->onClickMultiPlayer();
         });
         selectPanel_.add(multiPlayerB);
+    }
+    {
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.62f); // 放在中间
+        sf::Text characterText("Characters", font1_, 24);
+        // 使用 TextButton (假设你有这个类)
+        std::shared_ptr<TextButton> charBtn = std::make_shared<TextButton>(pos, WIDTH / 20, std::move(characterText), false);
+        charBtn->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
+        charBtn->setOnClick([this]() {
+            // 跳转逻辑
+            title_->setOldView(view_);
+            SceneSwitchRequest request = {
+                SceneSwitchRequest::Push,
+                std::make_unique<CharacterSelectMenu>(title_),
+                0,
+                0
+            };
+            onRequestSwitch_(request);
+        });
+        selectPanel_.add(charBtn);
     }
     title_->setOutlineColor(sf::Color::Black, 1);
     title_->setVisible(true);
@@ -98,15 +118,34 @@ void StartMenu::onClickSinglePlayer() {
     //     0    //means no title anim
     // };
     // onRequestSwitch_(request);
-}
-
-void StartMenu::onClickMultiPlayer() {
     title_->setOldView(view_);
     SceneSwitchRequest request = {
         SceneSwitchRequest::Push,
         std::make_unique<LevelSelectMenu>(title_, GameData::SERVER_IP, GameData::SERVER_PORT),
         0,
         0 //means no title anim
+    };
+    onRequestSwitch_(request);
+}
+
+void StartMenu::onClickMultiPlayer() {
+    title_->setOldView(view_);
+    SceneSwitchRequest request = {
+        SceneSwitchRequest::Push,
+        std::make_unique<LevelSelectMenu>(title_, GameData::REMOTE_SERVER_IP,
+            GameData::REMOTE_SERVER_PORT),
+        0,
+        0 //means no title anim
+    };
+    onRequestSwitch_(request);
+}
+void StartMenu::onClickCharacters() {
+    title_->setOldView(view_);
+    SceneSwitchRequest request = {
+        SceneSwitchRequest::Push,
+        std::make_unique<CharacterSelectMenu>(title_),
+        0,
+        0 // No extra anim
     };
     onRequestSwitch_(request);
 }

@@ -14,6 +14,8 @@ public:
         :Follower(target, maxSpeed, maxAccel) {  //range must be positive! being negative will be regarded as none
         sprite_.setTexture(texture);
         sprite_.setOrigin(texture.getSize().x / 2.0f, texture.getSize().y / 2.0f);
+        sprite_.setPosition(position_);
+        velocity_.x = 1.f;  //initial direction
         if (range.width >= 0)
             pRange_ = std::make_unique<sf::FloatRect>(std::move(range));
     }

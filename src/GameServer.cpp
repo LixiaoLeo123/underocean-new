@@ -10,13 +10,30 @@
 #include "server/new/system/DerivedAttributeSystem.h"
 #include "server/new/system/SkillSystem.h"
 
-GameServer::GameServer(){
-    if (!networkDriver_.listen(GameData::SERVER_PORT)) {
-        throw std::runtime_error("Error starting server");
+GameServer::GameServer(bool isMultiplePlayer, int port)
+    :isMultiplePlayer_(isMultiplePlayer) {
+    int finalPort;
+    if (port != 0) {
+        finalPort = GameData::SERVER_PORT = port;
+        if (!networkDriver_.listen(port, !isMultiplePlayer)) {
+            throw std::runtime_error("Error starting server on port " + std::to_string(port));
+        }
+    }
+    else {
+        int assignedPort = networkDriver_.listenOnAnyPort();
+        finalPort = assignedPort;
+        if (assignedPort == 0) {
+            if (!networkDriver_.listen(GameData::SERVER_PORT)) {
+                throw std::runtime_error("Error starting server");
+            }
+        }
+        else {
+            GameData::SERVER_PORT = assignedPort;
+        }
     }
     levels_[0] = std::make_unique<Level0>();
     levels_[1] = std::make_unique<Level1>(*this);
-    std::cout << "Server started" << std::endl;
+    std::cout << "Server started on port: " << finalPort << std::endl;
 }
 void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
     while (networkDriver_.hasPacket(PKT_LOGIN)) {
@@ -62,5 +79,6 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
         writer_.clearBuffer();
         it->second.hasLogin = true;   //finish
         broadcast("&e" + std::string(it->second.playerId).append(" joined the game"));
+        std::cout << std::string(it->second.playerId).append(" joined the game") << std::endl;
     }
 }

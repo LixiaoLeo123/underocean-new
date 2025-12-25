@@ -46,6 +46,10 @@ void EntityFactory::initialize(EventBus& eventBus) {
             {
                 coord_.addComponent<Invincibility>(newEntity, {3.f});
             }
+            {  //player id
+                NameTag nameTag(playerData->playerId);
+                coord_.addComponent<NameTag>(newEntity, nameTag);
+            }
         }
         else {
             coord_.addComponent(newEntity, Boids{});
