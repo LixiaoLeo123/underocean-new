@@ -5,6 +5,7 @@
 #include "server/GameServer.h"
 #include "server/new/LevelBase.h"
 #include "server/new/resources/GridResource.h"
+#include "server/new/resources/TimeResource.h"
 
 NetworkSyncSystem::NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus)
     : coord_(coordinator), server_(server), level_(level) {
@@ -46,6 +47,9 @@ NetworkSyncSystem::NetworkSyncSystem(Coordinator &coordinator, GameServer &serve
     });
     eventbus.subscribe<PlayerRespawnEvent>([this](const PlayerRespawnEvent &event) {
         this->onPlayerRespawn(event);
+    });
+    eventbus.subscribe<PlayerGlowSetEvent>([this](const PlayerGlowSetEvent &event) {
+        this->onPlayerGlowSetEvent(event);
     });
     {
         aoiSignature_.set(Coordinator::getComponentTypeID<EntityType>(), true);
@@ -201,7 +205,7 @@ void NetworkSyncSystem::update(float dt) {
                         driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_ENTITY_HP_CHANGE, true);
                         writer.clearBuffer();
                     }
-                    const auto&[hp, maxHp] = coord_.getComponent<HP>(e);
+                    const auto&[hp, maxHp, inc] = coord_.getComponent<HP>(e);
                     writer.writeInt16(e).writeInt8(static_cast<std::uint8_t>(hp / maxHp * 255.f));
                 }
             }
@@ -243,10 +247,21 @@ void NetworkSyncSystem::update(float dt) {
             std::uint16_t netHP = ltonHP16(hpComp.hp);
             std::uint16_t netFP = ltonFP(fpComp.fp);
             std::uint16_t netSize = ltonSize16(sizeComp.size);
+            std::uint16_t netTime = ltonTime(coord_.ctx<TimeResource>().currentTime);
             if (//(hpComp.hp != aoi.lastHP || fpComp.fp != aoi.lastFP) &&
                 !((level_.getCurrentTick() + peerEntity) % TICKS_PLAYER_STATE_UPDATE)) {
                 ServerNetworkDriver &driver = server_.getNetworkDriver();
-                writer.writeInt16(netHP).writeInt16(netFP).writeInt16(netSize);
+                writer.writeInt16(netHP).writeInt16(netFP).writeInt16(netSize).writeInt16(netTime);
+                const auto& it = hpDeltaList_.find(peerEntity);
+                if (it != hpDeltaList_.end()) {
+                    constexpr int MAX_PLAYER_HP_DELTA_PER_PACKET = 10;
+                    int curDelta = 0;
+                    for (float delta : it->second) {
+                        if (curDelta >= MAX_PLAYER_HP_DELTA_PER_PACKET) break;
+                        ++curDelta;
+                        writer.writeInt16(ltonHPDelta(delta));
+                    }
+                }
                 driver.send(writer.takePacket(), peer, 0, ClientTypes::PKT_PLAYER_STATE_UPDATE, false);
                 writer.clearBuffer();
                 aoi.lastHP = hpComp.hp;

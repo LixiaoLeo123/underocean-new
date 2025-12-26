@@ -10,6 +10,7 @@
 #include "server/new/component/Components.h"
 
 #include "common/utils/DBitset.h"
+#include "common/utils/Random.h"
 #include "server/new/EventBus.h"
 #include "server/new/LevelBase.h"
 
@@ -66,10 +67,22 @@ private:
     void onSkillApplied(const SkillApplyEvent& event) const;
     void onSkillEnd(const SkillEndEvent& event) const;
     void onPlayerRespawn(const PlayerRespawnEvent& event) const;
+    void onPlayerGlowSetEvent(const PlayerGlowSetEvent& event) const;
 public:
     explicit NetworkSyncSystem(Coordinator &coordinator, GameServer &server, LevelBase &level, EventBus &eventbus);
     void update(float dt) override;
 };
+inline void NetworkSyncSystem::onPlayerGlowSetEvent(const PlayerGlowSetEvent &event) const {
+    if (!coord_.hasComponent<NetworkPeer>(event.entity)) return;
+    PacketWriter& writer = server_.getPacketWriter();
+    writer.writeInt16(ltonRadius(event.radius)).writeInt8(event.intensity).writeInt8(event.intensity).writeInt8(event.intensity);
+    server_.getNetworkDriver().send(writer.takePacket(),
+        coord_.getComponent<NetworkPeer>(event.entity).peer,
+        0,
+        ClientTypes::PKT_SET_GLOW,
+        true);
+    writer.clearBuffer();
+}
 inline void NetworkSyncSystem::onEntitySizeChange(const EntitySizeChangeEvent &event) {
     sizeChangedBits_.set(event.entity);
 }
@@ -79,6 +92,69 @@ inline void NetworkSyncSystem::onEntityHPChange(const EntityHPChangeEvent &event
 }
 inline void NetworkSyncSystem::onEntityDeath(const EntityDeathEvent &event) {
     deathEntities_.set(event.entity);
+    if (coord_.hasComponent<NameTag>(event.entity)) {
+        std::string name = std::string(coord_.getComponent<NameTag>(event.entity).name.data(),
+                                       coord_.getComponent<NameTag>(event.entity).name.size());
+        name.erase(
+            std::find_if(name.rbegin(), name.rend(), [](unsigned char ch) {
+                return ch != '\0' && ch != ' ';
+            }).base(),
+            name.end()
+        );
+        std::vector<std::string> deathMessages = {
+            "has met their untimely end.",
+            "was lost to the abyss.",
+            "has perished in the battle.",
+            "was consumed by the darkness.",
+            "has been defeated by their own fate.",
+            "has fallen to the depths.",
+            "couldn't survive the storm.",
+            "is no longer with us.",
+            "has been struck down.",
+            "was destroyed in battle.",
+            "has succumbed to their wounds.",
+            "has fallen from grace.",
+            "was lost in the chaos.",
+            "has been claimed by the shadows.",
+            "was taken by the void.",
+            "met their doom.",
+            "has gone to the great beyond.",
+            "was torn apart by forces unknown.",
+            "has become another lost soul.",
+            "could not withstand the challenge.",
+            "turned their innards into outtards.",
+            "has turned into a pile of mush.",
+            "was reduced to a fine mist.",
+            "has been scattered to the winds.",
+            "became one with the earth.",
+            "has been disintegrated.",
+            "got a bit too close to the lava.",
+            "was swallowed whole by the void.",
+            "got a taste of their own medicine.",
+            "has melted into the ground.",
+            "became a meat sculpture.",
+            "has been erased from existence.",
+            "has been vaporized.",
+            "was unmade.",
+            "became fertilizer for the next generation.",
+            "has joined the great unknown.",
+            "was obliterated in the blink of an eye.",
+            "has crossed over to the other side.",
+            "met a gruesome end.",
+            "has become a distant memory.",
+            "was caught in the great crunch.",
+            "has seen the light... and then it went out.",
+            "was cleaved in twain.",
+            "has been crushed beyond recognition.",
+            "was shredded to pieces.",
+            "has become cosmic debris.",
+            "was turned into paste.",
+            "has been rendered into oblivion."
+        };
+        int randIndex = Random::randInt(0, deathMessages.size() - 1);
+        std::string deathMessage = name + " " + deathMessages[randIndex];
+        server_.broadcast(deathMessage);
+    }
 }
 inline void NetworkSyncSystem::onPlayerLeave(const PlayerLeaveEvent& event) {
     ENetPeer* peer = event.peer;

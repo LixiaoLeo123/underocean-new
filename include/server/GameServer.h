@@ -34,7 +34,7 @@ private:
     void handleTransformPacket();   //net pos, need to be converted by level
     void handleActionPacket();
     void handleRequestStopAndResumePacket();
-    void broadcast(std::string message);   //better under 1024 bytes
+    void handleRequestRespawnPacket();
 public:
     explicit GameServer(bool isMultiplePlayer, int port = 0);
     GameServer(const GameServer&) = delete;
@@ -45,6 +45,8 @@ public:
     bool isStopped{};  //only for single player
     [[nodiscard]] PacketWriter& getPacketWriter() { return writer; }
     [[nodiscard]] bool isMultiplePlayer() const { return isMultiplePlayer_; }
+    void broadcast(std::string message);   //better under 1024 bytes
+    void broadcastInLevel(std::string message, int level);   //better under 1024 bytes
     void update(float dt) {
         networkDriver_.pollPackets();
         handleConnectionPacket();   //CAUTION: may cause peer existence change!
@@ -53,7 +55,9 @@ public:
         handleMessagePacket();
         handleTransformPacket();
         handleActionPacket();   //add to buffer_
-        if (isMultiplePlayer_) {
+        handleRequestStopAndResumePacket();
+        handleRequestRespawnPacket();
+        if (!isMultiplePlayer_) {
             handleRequestStopAndResumePacket();
         }
         if (!isStopped) {
@@ -80,6 +84,16 @@ public:
         }
     }
 };
+inline void GameServer::handleRequestRespawnPacket() {
+    while (networkDriver_.hasPacket(PKT_REQUEST_RESPAWN)) {
+        isStopped = false;
+        std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_REQUEST_RESPAWN));
+        ENetPeer* peer = namedPacket->peer;
+        auto it = playerList_.find(peer);
+        if (it == playerList_.end()) continue;  //dont exist
+        levels_[it->second.currentLevel]->handleRequestRespawn(peer);
+    }
+}
 inline void GameServer::handleRequestStopAndResumePacket() {
     while (networkDriver_.hasPacket(PKT_REQUEST_STOP)) {
         std::unique_ptr<NamedPacket> namedPacket = std::move(networkDriver_.popPacket(PKT_REQUEST_STOP));
@@ -158,6 +172,15 @@ inline void GameServer::broadcast(std::string message) {
     std::vector<std::uint8_t> packet;
     packet.insert(packet.end(), message.begin(), message.end());
     for (auto pair : playerList_) {
+        networkDriver_.send(&packet, pair.first, 0, ClientTypes::PKT_MESSAGE, true);
+    }
+}
+inline void GameServer::broadcastInLevel(std::string message, int level) {
+    if (message.size() > 10000) return;   //large packet, dont handle
+    std::vector<std::uint8_t> packet;
+    packet.insert(packet.end(), message.begin(), message.end());
+    for (auto pair : playerList_) {
+        if (pair.second.currentLevel != level) continue;
         networkDriver_.send(&packet, pair.first, 0, ClientTypes::PKT_MESSAGE, true);
     }
 }

@@ -30,7 +30,7 @@ struct AnimatedSpriteUI {
         frameWidth  = tex.getSize().x / totalFrames;
         frameHeight = tex.getSize().y;
         sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
-        elapsed = Random::randFloat(0.f, 10.f);
+        elapsed = Random::randFloat(0.f, frameInterval);
         currentFrame = (currentFrame + 1) % totalFrames;
         sprite.setTextureRect(sf::IntRect(
             currentFrame * frameWidth,
@@ -43,7 +43,7 @@ struct AnimatedSpriteUI {
         if (totalFrames <= 1) return;
         elapsed += dt;
         if (elapsed >= frameInterval) {
-            elapsed -= frameInterval;
+            elapsed = 0;
             currentFrame = (currentFrame + 1) % totalFrames;
             sprite.setTextureRect(sf::IntRect(
                 currentFrame * frameWidth,
@@ -61,6 +61,7 @@ public:
     sf::RectangleShape selectionFrame;
     sf::RectangleShape bgBox;
     EntityTypeID type;
+    sf::Vector2f baseScale;
     bool unlocked;
     float originalY;
     bool isHovered = false;

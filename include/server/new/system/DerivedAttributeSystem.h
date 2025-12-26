@@ -11,9 +11,6 @@
 #include "server/new/EventBus.h"
 #include "server/new/component/Components.h"
 //entities that will handle
-#define ATTRIBUTE_ENTITY_TYPES \
-X(SMALL_YELLOW)
-
 class DerivedAttributeSystem : public ISystem{  //calculate maxHP, maxFP, etc. by entity size and type
 private:
     Coordinator& coord_;
@@ -84,7 +81,7 @@ public:
     static float calcFPDecRate(EntityTypeID type, float size) {
         switch (type) {
 #define X(type) case EntityTypeID::type: return ParamTable<EntityTypeID::type>::FP_DEC_RATE_BASE  * std::pow(size \
-/ ParamTable<EntityTypeID::type>::INIT_SIZE, 1.7); break;
+/ ParamTable<EntityTypeID::type>::INIT_SIZE, 2.6); break;
             ATTRIBUTE_ENTITY_TYPES
 #undef X
             default: return -1.f;

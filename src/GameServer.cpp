@@ -80,5 +80,6 @@ void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;
         it->second.hasLogin = true;   //finish
         broadcast("&e" + std::string(it->second.playerId).append(" joined the game"));
         std::cout << std::string(it->second.playerId).append(" joined the game") << std::endl;
+        isStopped = false;
     }
 }

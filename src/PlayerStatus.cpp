@@ -1,6 +1,7 @@
 #include "client/scenes/levelscenes/PlayerStatus.h"
 
 #include "client/common/ResourceManager.h"
+#include "server/core(deprecate)/GameData.h"
 
 PlayerStatus::PlayerStatus() {
     uiView.setSize(UI_VIEW_WIDTH, 0.f);
@@ -186,6 +187,7 @@ void PlayerStatus::setHP(float hp) {
     int previousHalfHearts = static_cast<int>(std::round(2.f * hp_ / HP_PER_HEART));
     int currentHalfHearts = static_cast<int>(std::round(2.f * clampedHp / HP_PER_HEART));
     hp_ = hp;
+    GameData::playerHP[GameData::playerType] = hp_;
     if (!isWhiteHeartAnim_)
         tempLastHalfHearts_ = previousHalfHearts;
     tempNowHalfHearts_ = currentHalfHearts;
@@ -207,6 +209,7 @@ void PlayerStatus::setFP(float fp) {
     int currentHalfFoods = static_cast<int>(std::round(2.f * clampedFp / FP_PER_FOOD));
     if (previousHalfFoods == currentHalfFoods) return;
     fp_ = fp;
+    GameData::playerFP[GameData::playerType] = fp_;
     if (currentHalfFoods > previousHalfFoods) {
         jumpingFoodIndex_ = 0;
         jumpingFoodAnimTimer_ = 0.f;

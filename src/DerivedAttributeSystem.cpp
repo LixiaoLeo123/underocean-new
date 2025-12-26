@@ -10,6 +10,8 @@ void DerivedAttributeSystem::update(float dt) {  //update fp
             if (!coord_.hasSignature(entity, fpSig_)) continue;
             FP& fp = coord_.getComponent<FP>(entity);
             fp.fp -= fp.fpDecRate * dt;
+            HP& hp = coord_.getComponent<HP>(entity);
+            hp.hp = std::clamp(hp.hp + hp.hpIncRate * dt, 0.f, hp.maxHp);
             EntityTypeID type = coord_.getComponent<EntityType>(entity).entityID;
             if (fp.fp < 0.f) {
                 float newSize = coord_.getComponent<Size>(entity).size - calcSizeStep(type);

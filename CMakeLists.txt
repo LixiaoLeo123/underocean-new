@@ -48,6 +48,7 @@ add_executable(Underocean
         src/AudioManager.cpp
         src/ClientFoodBall.cpp
         src/CharacterSelectMenu.cpp
+        src/HelpScene.cpp
 )
 
 

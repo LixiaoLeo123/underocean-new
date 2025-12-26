@@ -1,11 +1,7 @@
-//
-// Created by 15201 on 12/15/2025.
-//
-
 #ifndef UNDEROCEAN_SKILLSYSTEM_H
 #define UNDEROCEAN_SKILLSYSTEM_H
 #include <functional>
-
+#include <array> // 记得包含这个
 #include "ISystem.h"
 #include "common/Types.h"
 #include "server/GameServer.h"
@@ -15,7 +11,6 @@ class EventBus;
 struct NetworkPeer;
 class GameServer;
 
-
 class SkillSystem : public ISystem {
 public:
     explicit SkillSystem(GameServer& server, Coordinator& coord, EventBus& eventBus);
@@ -24,41 +19,41 @@ public:
     constexpr static float getSkillCooldown(int skillIndex, int level);
     constexpr static float getSkillDuration(int skillIndex, int level);
 private:
-    constexpr static int TOTAL_SKILL_NUM = 48;  //6 * 8
+    constexpr static int TOTAL_SKILL_NUM = 48;
     Signature playerSig_ {};
-    GameServer& server_;   //to get buffered action data
-    Coordinator& coord_;  //to get entity and modify entity
-    EventBus& eventBus_;  //to publish skill emit, subscribe player join and leave event
-    std::unordered_map<ENetPeer*, std::pair<bool, std::array<float, 4>>> skillCooldowns_ {};  //peer to skill cooldowns, bool for enabled, cooldown for both skill ready cooldown and skill end cooldown
+    GameServer& server_;
+    Coordinator& coord_;
+    EventBus& eventBus_;
+    struct SkillState {
+        bool isActive = false;
+        float timer = 0.f;
+    };
+    std::unordered_map<ENetPeer*, std::array<SkillState, 4>> skillStates_;
+
     std::vector<std::function<void(ENetPeer* peer, int level)>> skillApplyHandler_ {};
     std::vector<std::function<void(ENetPeer* peer, int level)>> skillEndHandler_ {};
     void onPlayerJoin(ENetPeer* peer);
     void onPlayerLeave(ENetPeer* peer);
 };
-inline void SkillSystem::onPlayerJoin(ENetPeer *peer) {
-    const auto& it = skillCooldowns_.find(peer);
-    if (it != skillCooldowns_.end()) {
-        return; //already exist
-    }
-    SkillIndices indices = getSkillIndices(server_.playerList_[peer].type);
-    float cooldowns[4];
-    for (int i = 0; i < 4; ++i) {
-        cooldowns[i] = getSkillCooldown(indices.skillIndices[i], server_.playerList_[peer].skillLevels[i]);
-    }
-    skillCooldowns_.emplace(peer, std::make_pair(false, std::array<float, 4>{cooldowns[0], cooldowns[1], cooldowns[2], cooldowns[3]}));
-}
 
-inline void SkillSystem::onPlayerLeave(ENetPeer *peer) {
-    skillCooldowns_.erase(peer);
-}
 constexpr float SkillSystem::getSkillCooldown(int skillIndex, int level) {
     switch (skillIndex) {
         case 42:  //attack enabled
             return 1.f;
         case 2: //Small Yellow Dash
             return 10.f - level * 1.f;
-        default:
-            return 0.f;
+        case 24:
+            return 45.f - level * 2.f;
+        case 1:
+            return 60.f - level * 7.f;
+        case 9:
+            return 50.f - level * 3.f;
+        case 17:
+            return 30.f - level * 4.f;
+        case 13:
+            return 25.f - level * 5.f;
+         default:
+            return 1.f;
     }
 }
 constexpr float SkillSystem::getSkillDuration(int skillIndex, int level) {
@@ -67,8 +62,18 @@ constexpr float SkillSystem::getSkillDuration(int skillIndex, int level) {
             return -1.f;  //permanent
         case 2: //Small Yellow Dash
             return 0.5f;
+        case 24:
+            return 4.f + level * 2.f;
+        case 1:
+            return 20.f + level * 5.f;
+        case 9:
+            return 5.f + level * 2.f;
+        case 17:
+            return 1.f;
+        case 13:
+            return 10.f * level * 5.f;
         default:
-            return 0.f;
+            return -1.f;
     }
 }
 constexpr SkillIndices SkillSystem::getSkillIndices(EntityTypeID type) {

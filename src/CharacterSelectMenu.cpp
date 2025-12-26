@@ -10,6 +10,7 @@ CharacterSlot::CharacterSlot(EntityTypeID t, bool isUnlocked, float yPos, float 
     sf::FloatRect b = anim.sprite.getLocalBounds();
     float scale = size / std::max(b.width, b.height);
     anim.sprite.setScale(scale, scale);
+    baseScale = anim.sprite.getScale();
     bgBox.setSize({size, size});
     bgBox.setFillColor(sf::Color(255,255,255,8));
     bgBox.setOutlineThickness(1);
@@ -52,7 +53,7 @@ CharacterSelectMenu::CharacterSelectMenu(const std::shared_ptr<SmoothTextLabel>&
       bgObj1_(ResourceManager::getTexture("images/backgrounds/bg1/bubble1.png"), HEIGHT, 0.15f, 1.f, 10.f, 0.06f),
       skillTexture_(ResourceManager::getTexture("images/icons/skills.png")),
       fontEn_(ResourceManager::getFont("fonts/font4.ttf")){
-    background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg1/bg1.png"));
+    background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg1/bg1_all.png"));
     title_->setVisible(true);
     title_->setOutlineColor(sf::Color::Black, 1);
     int idx = 0;
@@ -64,7 +65,7 @@ CharacterSelectMenu::CharacterSelectMenu(const std::shared_ptr<SmoothTextLabel>&
         bool unlocked = GameData::isCharacterUnlocked(static_cast<int>(type)); \
         slots_.emplace_back(type, unlocked, currentY, SLOT_SIZE); \
         currentY += SLOT_SIZE + 10.0f; \
-        idx++; \
+        ++idx; \
     }
     PLAYER_ENTITY_TYPES
     #undef X
@@ -116,14 +117,27 @@ CharacterSelectMenu::CharacterSelectMenu(const std::shared_ptr<SmoothTextLabel>&
 }
 void CharacterSelectMenu::resetViewArea(unsigned winWidth, unsigned winHeight) {
     float windowRatio = static_cast<float>(winWidth) / static_cast<float>(winHeight);
+    float designRatio = static_cast<float>(WIDTH) / static_cast<float>(HEIGHT);
     sf::Vector2f viewSize;
-    if (windowRatio < static_cast<float>(WIDTH) / HEIGHT) {
-        viewSize = sf::Vector2f(HEIGHT * windowRatio, HEIGHT);
+    if (windowRatio > designRatio) {
+        viewSize.y = HEIGHT;
+        viewSize.x = HEIGHT * windowRatio;
     } else {
-        viewSize = sf::Vector2f(WIDTH, WIDTH / windowRatio);
+        viewSize.x = WIDTH;
+        viewSize.y = WIDTH / windowRatio;
     }
-    view_.reset(sf::FloatRect(0, 0, viewSize.x, viewSize.y));
+    view_.setSize(viewSize);
     view_.setCenter(WIDTH / 2.f, HEIGHT / 2.f);
+    const sf::Texture* tex = background_.getTexture();
+    if (tex) {
+        sf::Vector2u texSize = tex->getSize();
+        float scaleX = viewSize.x / static_cast<float>(texSize.x);
+        float scaleY = viewSize.y / static_cast<float>(texSize.y);
+        float bgScale = std::max(scaleX, scaleY);
+        background_.setOrigin(texSize.x / 2.f, texSize.y / 2.f);
+        background_.setScale(bgScale, bgScale);
+        background_.setPosition(WIDTH / 2.f, HEIGHT / 2.f);
+    }
     viewDirty_ = true;
 }
 void CharacterSelectMenu::selectCharacter(EntityTypeID type) {
@@ -217,10 +231,10 @@ void CharacterSelectMenu::handleEvent(const sf::Event& event) {
     else if (event.type == sf::Event::MouseMoved) {
         for (auto& slot : slots_) {
             float visualY = slot.originalY - scrollOffset_;
-            if (visualY + SLOT_SIZE > LIST_TOP && visualY < LIST_BOTTOM) {
-                slot.isHovered = slot.contains({static_cast<float>(event.mouseButton.x),
-                    static_cast<float>(event.mouseButton.y)});
-            }
+            // if (visualY + SLOT_SIZE > LIST_TOP && visualY < LIST_BOTTOM) {
+                slot.isHovered = slot.contains({static_cast<float>(event.mouseMove.x),
+                    static_cast<float>(event.mouseMove.y)});
+            // }
         }
     }
 }
@@ -239,7 +253,7 @@ void CharacterSelectMenu::render(sf::RenderWindow& window) {
         resetViewArea(winSize.x, winSize.y);
         sf::Vector2f titleSize = title_->calculateSizeByWidth(WIDTH * 0.6f);
         title_->convertTo(view_);
-        title_->setBounds(sf::Vector2f((WIDTH - titleSize.x) / 2.f, HEIGHT / 128.f), titleSize);
+        title_->setBounds(sf::Vector2f((WIDTH - titleSize.x) / 2.f + 15.f, HEIGHT / 128.f), titleSize);
         viewInit_ = true;
     }
     if (viewDirty_) {

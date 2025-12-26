@@ -43,20 +43,42 @@ LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& drive
                 };
         onRequestSwitch_(request);
     });
+    //player light
+    float lightRadius = LightingSystem::getLightRadius(static_cast<EntityTypeID>(GameData::playerType));
+    if (lightRadius > 0.f) {
+        playerGlowRadius_ = lightRadius;
+        if (const sf::Uint8* lightColorRGB = LightingSystem::getLightColor(static_cast<EntityTypeID>(GameData::playerType))) {
+            playerGlowColor_ = sf::Color(lightColorRGB[0], lightColorRGB[1], lightColorRGB[2]);
+        }
+    }
 }
 void LevelSceneBase::handlePlayerStateUpdate() {
     while (auto packet = driver_->popPacket(PacketType::PKT_PLAYER_STATE_UPDATE)) {
         if (driver_->hasPacket(PKT_PLAYER_STATE_UPDATE)) continue;  //only handle latest packet
-        if (packet->size() != 6) continue;  //wrong packet
+        if (packet->size() % 2 != 0 || packet->size() < 8) continue;  //wrong packet
         PacketReader reader(std::move(*packet));
         std::uint16_t netHP = reader.nextUInt16();
         std::uint16_t netFP = reader.nextUInt16();
         std::uint16_t netSize = reader.nextUInt16();
+        std::uint16_t netTime = reader.nextUInt16();
         float hp = ntolHP16(netHP);
         float fp = ntolFP(netFP);
         float size = ntolSize16(netSize);
+        float time = ntolTime(netTime);
+        setTime(time);
         playerStatus_.setHP(hp);
         playerStatus_.setFP(fp);
+        while (reader.canRead(2)) {
+            float delta = ntolHPDelta(reader.nextUInt8());
+            spawnDamagePopup(delta, player.getPosition());
+            if (delta < 0) {
+                player.triggerHurtFlash(1 - (1 / (std::abs(delta) * 32.f + 1)));
+                AudioManager::getInstance().playSound("audio/s_hurt.mp3");
+            }
+            else if (delta > 0) {
+                //TODO: play hp++ sound
+            }
+        }
         player.setSize(size);
     }
 }
@@ -128,6 +150,11 @@ void LevelSceneBase::render(sf::RenderWindow &window) {
             );
         }
     }
+    lightingSystem_.drawLight(
+        player.getPosition(),
+        view_,
+        playerGlowRadius_,
+        playerGlowColor_);
     lightingSystem_.display();
     sf::View currentView = window.getView();
     window.setView(sf::View(sf::FloatRect(0.f, 0.f,
@@ -320,6 +347,7 @@ void LevelSceneBase::handleEntityDeath() {
                         it->second->getVelocity(),
                         std::abs(it->second->getSprite().getScale().x)
                     );
+                    AudioManager::getInstance().playSound("audio/s_death.mp3");
                     entities_.erase(it);
                 }
                 else {
@@ -328,6 +356,7 @@ void LevelSceneBase::handleEntityDeath() {
                     // if (std::abs(pos.x - player.getPosition().x) < FOOD_BALL_ANIM_DIS_THRESHOLD + player.getSize() / 2.f &&
                     //     std::abs(pos.y - player.getPosition().y) < FOOD_BALL_ANIM_DIS_THRESHOLD + player.getSize() / 2.f) {
                     reinterpret_cast<ClientFoodBall*>(it->second.get())->startAbsorb();
+                    AudioManager::getInstance().playSound("audio/s_fp.wav");
                     // }
                 }
             }
@@ -405,6 +434,12 @@ void LevelSceneBase::handleHPDelta() {
             if (it != entities_.end()) {
                 spawnDamagePopup(delta, it->second->getPosition());
                 it->second->triggerHurtFlash(1 - (1 / (std::abs(delta) * 32.f + 1)));
+                if (delta < 0) {
+                    AudioManager::getInstance().playSound("audio/s_attacked.mp3");
+                }
+                else if (delta > 0) {
+                    //TODO: play hp++ sound
+                }
             }
         }
     }
@@ -420,6 +455,18 @@ void LevelSceneBase::handlePlayerRespawn() {
                 );
         pauseMenu_.active = false;
         dialogueSystem_.active = false;
+        AudioManager::getInstance().playSound("audio/s_wasted.wav");
+    }
+}
+void LevelSceneBase::handleGlowSetPacket() {
+    while (auto packet = driver_->popPacket(PacketType::PKT_SET_GLOW)) {
+        if (packet->size() != 5) continue;
+        PacketReader reader(std::move(*packet));
+        playerGlowRadius_ = ntolRadius(reader.nextUInt16());
+        std::uint8_t r = reader.nextUInt8();
+        std::uint8_t g = reader.nextUInt8();
+        std::uint8_t b = reader.nextUInt8();
+        playerGlowColor_ = sf::Color(r, g, b);
     }
 }
 void LevelSceneBase::update(float dt) {
@@ -441,6 +488,7 @@ void LevelSceneBase::update(float dt) {
     handleSkillPackets();
     handlePlayerRespawn();
     handleDialoguePacket();
+    handleGlowSetPacket();
     sf::Vector2f mouseWorld = InputManager::getInstance().mousePosWorld;
     updatePauseMenu(dt, mouseWorld);
     updateDialogueSystem(dt);
@@ -517,12 +565,15 @@ void LevelSceneBase::initPauseMenu() {
         onRequestSwitch_(request);
     });
     loadBtn(pauseMenu_.btnRetry, "images/ui/btn_retry.png", [this]() {
+        // AudioManager::getInstance().playSound("audio/s_wasted.wav");
         pauseMenu_.active = false;
-        state_ = State::DEATH;
-        deathTimer_ = 0.f;
-        deathSystem_.spawnDeathEffect(player.getSprite(), player.getVelocity(), std::abs(player.getSprite().getScale().x));
+        // state_ = State::DEATH;
+        // deathTimer_ = 0.f;
+        // deathSystem_.spawnDeathEffect(player.getSprite(), player.getVelocity(), std::abs(player.getSprite().getScale().x));
+        driver_->send(nullptr, 0, ServerTypes::PKT_REQUEST_RESPAWN, true);
     });
     loadBtn(pauseMenu_.btnResume, "images/ui/btn_resume.png", [this]() {
+        driver_->send(nullptr, 0, ServerTypes::PKT_REQUEST_RESUME, true);
         pauseMenu_.active = false;
     });
 }
@@ -565,8 +616,8 @@ void LevelSceneBase::handlePauseInput(const sf::Event& event, const sf::Vector2f
     }
 }
 void LevelSceneBase::initDialogueSystem() {
-    dialogueSystem_.bgBox.setFillColor(sf::Color(0, 0, 0, 128)); // 灰色半透明
-    dialogueSystem_.textDrawable.setFont(ResourceManager::getFont("fonts/font4.ttf")); // 确保字体存在
+    dialogueSystem_.bgBox.setFillColor(sf::Color(0, 0, 0, 128));
+    dialogueSystem_.textDrawable.setFont(ResourceManager::getFont("fonts/font4.ttf"));
     dialogueSystem_.textDrawable.setCharacterSize(24);
     dialogueSystem_.textDrawable.setFillColor(sf::Color::White);
     dialogueSystem_.localDatabase[1] = {

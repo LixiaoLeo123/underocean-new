@@ -64,6 +64,7 @@ struct NetworkPeer {
 struct HP {
     float hp { 0.f };  //client will only receive std::uint16 netHP
     float maxHp { 0.f };
+    float hpIncRate { 0.f };
 };
 struct FP {  //food points
     float fp { 0.f };  //same
@@ -101,6 +102,11 @@ struct NameTag {
     explicit NameTag(const char src[16]) {
         std::memcpy(name.data(), src, 16);
     }
+};
+struct Chase {
+    bool isChasing;
+    float chaseRadius;
+    Entity entity;
 };
 inline Transform::Transform(UVector vec): x(vec.x), y(vec.y) {};
 inline Velocity::Velocity(UVector vec): vx(vec.x), vy(vec.y) {};

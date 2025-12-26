@@ -10,8 +10,6 @@
 #include "server/new/resources/GridResource.h"
 #include "server/new/component/Components.h"
 //entities that boids will handle
-#define BOIDS_ENTITY_TYPES \
-X(SMALL_YELLOW)
 
 class BoidsSystem : public ISystem {
 private:

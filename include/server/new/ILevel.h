@@ -17,5 +17,7 @@ public:
     virtual void update(float dt) = 0;
     virtual void onPlayerLeave(PlayerData& playerData) = 0;
     virtual void onPlayerJoin(PlayerData& playerData) = 0;
+    virtual void handleRequestRespawn(ENetPeer* peer) = 0;
+    virtual int getLevel() = 0;
 };
 #endif //UNDEROCEAN_STATE_H

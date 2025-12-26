@@ -7,6 +7,7 @@
 #include <utility>
 #include "client/common/ResourceManager.h"
 #include "client/scenes/CharacterSelectMenu/CharacterSelectMenu.h"
+#include "client/scenes/helpscene/HelpScene.h"
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 #include "client/ui/layouts/LazyLayout.h"
 #include "client/ui/widgets/TextButton.h"
@@ -36,7 +37,7 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
         selectPanel_.add(singlePlayerB);
     }
     {
-        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.76f);
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.62f);
         sf::Text characterText("Multiple Player", font1_, 24);
         std::shared_ptr<TextButton> multiPlayerB = std::make_shared<TextButton>(pos, WIDTH / 20, std::move(characterText),false);
         multiPlayerB->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
@@ -46,17 +47,32 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
         selectPanel_.add(multiPlayerB);
     }
     {
-        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.62f); // 放在中间
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.76f);
         sf::Text characterText("Characters", font1_, 24);
-        // 使用 TextButton (假设你有这个类)
-        std::shared_ptr<TextButton> charBtn = std::make_shared<TextButton>(pos, WIDTH / 20, std::move(characterText), false);
+        std::shared_ptr<TextButton> charBtn = std::make_shared<TextButton>(pos, WIDTH / 26, std::move(characterText), false);
         charBtn->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
         charBtn->setOnClick([this]() {
-            // 跳转逻辑
             title_->setOldView(view_);
             SceneSwitchRequest request = {
                 SceneSwitchRequest::Push,
                 std::make_unique<CharacterSelectMenu>(title_),
+                0,
+                0
+            };
+            onRequestSwitch_(request);
+        });
+        selectPanel_.add(charBtn);
+    }
+    {
+        sf::Vector2f pos(WIDTH / 2.f, HEIGHT * 0.90f);
+        sf::Text characterText("Help", font1_, 24);
+        std::shared_ptr<TextButton> charBtn = std::make_shared<TextButton>(pos, WIDTH / 25, std::move(characterText), false);
+        charBtn->setColor(sf::Color::White, sf::Color::Yellow, sf::Color::Red);
+        charBtn->setOnClick([this]() {
+            title_->setOldView(view_);
+            SceneSwitchRequest request = {
+                SceneSwitchRequest::Push,
+                std::make_unique<HelpScene>(title_),
                 0,
                 0
             };

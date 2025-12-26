@@ -6,6 +6,7 @@
 #define UNDEROCEAN_LEVEL1_H
 #include "server/new/Coordinator.h"
 #include "server/new/LevelBase.h"
+#include "server/new/resources/TimeResource.h"
 #include "server/new/system/AccelerationSystem.h"
 #include "server/new/system/EntityGenerationSystem.h"
 #include "server/new/system/NetworkControlSystem.h"
@@ -46,6 +47,15 @@ public:
         return static_cast<std::uint16_t>(std::round(norm * 65535.f));
     }
     [[nodiscard]] int getLevelID() const override { return 1; };
+    void handleRequestRespawn(ENetPeer *peer) override {
+        auto& peerEntities = coordinator_.getEntitiesWith(networkSignature_);
+        for (Entity e : peerEntities) {
+            if (coordinator_.getComponent<NetworkPeer>(e).peer == peer) {
+                eventBus_.publish<PlayerRespawnEvent>({e});
+            }
+        }
+    }
+    int getLevel() override { return 1; }
 protected:
     // void customInitialize() override {
     //     emplaceSystem<BoidsSystem>(coordinator_);
@@ -73,6 +83,9 @@ inline void Level1::onPlayerLeave(PlayerData& playerData) {
 inline void Level1::onPlayerJoin(PlayerData& playerData) {   //call by GameServer
     entityFactory_.spawnPlayerEntity(&playerData);
     eventBus_.publish<PlayerJoinEvent>({playerData});
+    if (!server_.isMultiplePlayer()) {
+        coordinator_.ctx<TimeResource>().reset();
+    }
 }
 inline void Level1::update(float dt) {
     LevelBase::update(dt);

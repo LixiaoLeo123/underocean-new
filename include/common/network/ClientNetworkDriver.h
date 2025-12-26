@@ -49,12 +49,18 @@ public:
     void setOnDisconnect(const std::function<void()> &onDisConnect) { onDisConnect_ = onDisConnect; }
     void send(const Packet* packet, int channel, int packetType, bool reliable = false) {
         if (!serverPeer_) return;
-        size_t total = packet->size() + 1; //extra byte for PacketTypeID
-        ENetPacket* enetPacket = enet_packet_create(nullptr, total,
-            !reliable ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : ENET_PACKET_FLAG_RELIABLE);
+        size_t dataSize = packet ? packet->size() : 0;
+        size_t total = dataSize + 1;
+        ENetPacket *enetPacket = enet_packet_create(
+            nullptr,
+            total,
+            !reliable ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : ENET_PACKET_FLAG_RELIABLE
+        );
         if (!enetPacket) return;
         enetPacket->data[0] = static_cast<uint8_t>(packetType);
-        std::memcpy(enetPacket->data + 1, packet->data(), packet->size());
+        if (packet && dataSize > 0) {
+            std::memcpy(enetPacket->data + 1, packet->data(), dataSize);
+        }
         enet_peer_send(serverPeer_, channel, enetPacket);
     }
     bool reconnect() {

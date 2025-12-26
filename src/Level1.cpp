@@ -3,25 +3,32 @@
 //
 #include "server/new/levels/Level1.h"
 
+#include "server/new/resources/TimeResource.h"
 #include "server/new/resources/plots/PlotContext1.h"
 #include "server/new/system/AccelerationLimitSystem.h"
 #include "server/new/system/AccelerationSystem.h"
 #include "server/new/system/AttackingSystem.h"
 #include "server/new/system/BoidsSystem.h"
 #include "server/new/system/BoundaryCullingSystem.h"
+#include "server/new/system/ChasingSystem.h"
 #include "server/new/system/CollisionSystem.h"
 #include "server/new/system/DerivedAttributeSystem.h"
 #include "server/new/system/EntityClearSystem.h"
 #include "server/new/system/GridBuildSystem.h"
 #include "server/new/system/SkillSystem.h"
 #include "server/new/system/VelocityLimitSystem.h"
+#include "server/new/system/TimeSystem.h"
+
 
 void Level1::initialize() {
     coordinator_.emplaceContext<GridResource>();
+    coordinator_.emplaceContext<TimeResource>();
     emplaceSystem<GridBuildSystem>(coordinator_);
+    emplaceSystem<TimeSystem>(coordinator_, server_, entityFactory_, eventBus_, *this);
     emplaceSystem<DerivedAttributeSystem>(coordinator_, eventBus_);
     emplaceSystem<NetworkControlSystem>(coordinator_, server_, *this, eventBus_);
     emplaceSystem<BoidsSystem>(coordinator_);
+    emplaceSystem<ChasingSystem>(coordinator_, eventBus_);
     emplaceSystem<SkillSystem>(server_, coordinator_, eventBus_);
     emplaceSystem<AttackingSystem>(eventBus_, coordinator_);
     emplaceSystem<CollisionSystem>(coordinator_, eventBus_);
@@ -38,6 +45,14 @@ void Level1::initialize() {
     coordinator_.emplaceContext<PlotContext1>();
     entityFactory_.setSpawnArea({0.f, 0.f}, {MAP_SIZE.x, MAP_SIZE.y});
     entityFactory_.addWeightedEntry(EntityTypeID::SMALL_YELLOW, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::FLY_FISH, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::RED_LIGHT, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::SMALL_SHARK, 100);
+    entityFactory_.addWeightedEntry(EntityTypeID::TURTLE, 0.1);
+    entityFactory_.addWeightedEntry(EntityTypeID::UGLY_FISH, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::ROUND_GREEN, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::BALL_ORANGE, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::BLUE_LONG, 1);
     networkSignature_.set(Coordinator::getComponentTypeID<NetworkPeer>());
     coordinator_.registerSystem(networkSignature_);
 }

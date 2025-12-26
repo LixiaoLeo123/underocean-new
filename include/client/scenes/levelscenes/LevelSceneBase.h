@@ -114,6 +114,7 @@ protected:
     void handlePlayerRespawn();
     void handleHPDelta();
     void handleDialoguePacket();
+    void handleGlowSetPacket();
     enum class State {
         GAMING,
         DEATH
@@ -126,6 +127,8 @@ private:
     constexpr static float VIEW_HEIGHT = 45.f;
     float accDisRatio_ { -1.f };
     PlayerStatus playerStatus_ {};  //HP and FP indicator
+    float playerGlowRadius_{0.f};
+    sf::Color playerGlowColor_;
 protected:
     std::unordered_map<Entity, std::unique_ptr<NetworkEntity>> entities_;
     PlayerEntity player;
@@ -136,8 +139,22 @@ protected:
     sf::Shader& blur_;
     unsigned currentTick_ { 0 };
     LightingSystem lightingSystem_;
+    sf::Color ambientLightColorBase_ { 168, 168, 188 };
     sf::Color ambientLightColor_ { 168, 168, 188 };  //blue
     std::vector<ClientFoodBall> foodBalls_;
+    void setTime(float time) {
+        float phase = (time / MAX_TIME) * 2.0f * 3.14159f;
+        float brightness = 0.5f * (1.0f + std::sinf(phase));
+        ambientLightColor_.r = static_cast<sf::Uint8>(
+            std::clamp(ambientLightColorBase_.r * brightness, 0.0f, 255.0f)
+        );
+        ambientLightColor_.g = static_cast<sf::Uint8>(
+            std::clamp(ambientLightColorBase_.g * brightness, 0.0f, 255.0f)
+        );
+        ambientLightColor_.b = static_cast<sf::Uint8>(
+            std::clamp(ambientLightColorBase_.b * brightness, 0.0f, 255.0f)
+        );
+    }
 };
 inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowHeight, float scale) {
     float windowRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
@@ -153,7 +170,14 @@ inline void LevelSceneBase::resetViewSize(unsigned windowWidth, unsigned windowH
 inline void LevelSceneBase::handleEvent(const sf::Event &event) {
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Q) {
         if (!chatBox_->isOpen() && !dialogueSystem_.active && state_ != State::DEATH) {
-            pauseMenu_.active = !pauseMenu_.active;
+            if (pauseMenu_.active) {
+                pauseMenu_.active = false;
+                driver_->send(nullptr, 0, ServerTypes::PKT_REQUEST_RESUME, true);
+            }
+            else {
+                pauseMenu_.active = true;
+                driver_->send(nullptr, 0, ServerTypes::PKT_REQUEST_STOP, true);
+            }
         }
     }
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {

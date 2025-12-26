@@ -21,14 +21,34 @@ X(BLUE_LONG) \
 X(RED_LIGHT) \
 X(UGLY_FISH) \
 X(SMALL_SHARK) \
-X(FOOD_BALL)
+X(FOOD_BALL) \
+X(TURTLE)
 #define PLAYER_ENTITY_TYPES \
 X(SMALL_YELLOW) \
 X(FLY_FISH) \
 X(RED_LIGHT) \
-X(SMALL_SHARK)
+X(SMALL_SHARK) \
+X(TURTLE)
 #define LIGHT_ENTITY_TYPES \
-X(FOOD_BALL)
+X(FOOD_BALL) \
+X(RED_LIGHT)
+#define BOIDS_ENTITY_TYPES \
+X(SMALL_YELLOW) \
+X(FLY_FISH) \
+X(BALL_ORANGE) \
+X(ROUND_GREEN) \
+X(UGLY_FISH) \
+X(BLUE_LONG)
+#define ATTRIBUTE_ENTITY_TYPES \
+X(SMALL_YELLOW) \
+X(FLY_FISH) \
+X(RED_LIGHT) \
+X(SMALL_SHARK) \
+X(TURTLE) \
+X(BALL_ORANGE) \
+X(ROUND_GREEN) \
+X(UGLY_FISH) \
+X(BLUE_LONG)
 using Entity = std::uint16_t;
 constexpr Entity MAX_ENTITIES = 16384;     //2048 byte
 using ComponentType = std::uint8_t;
@@ -41,6 +61,8 @@ constexpr float ENTITY_MAX_FP = 2048.f;
 constexpr float PLAYER_MAX_MAX_VEC = 1024.f;
 constexpr float PLAYER_MAX_MAX_ACC = 1024.f;
 constexpr float MAX_HP_DELTA = 1024.f;
+constexpr float MAX_TIME = 600.f;
+constexpr float MAX_RADIUS = 100.f;
 constexpr std::uint8_t ltonSize8(float size) {    //local size to net size
     return static_cast<std::uint8_t>(std::round(size / ENTITY_MAX_SIZE * 255.f));
 }
@@ -91,6 +113,18 @@ constexpr std::uint16_t ltonHPDelta(float delta) {
 constexpr float ntolHPDelta(std::uint16_t netDelta) {
     return (static_cast<float>(netDelta) / 65535.0f) * (2.0f * MAX_HP_DELTA) - MAX_HP_DELTA;
 }
+constexpr std::uint16_t ltonTime(float time) {
+    return static_cast<std::uint16_t>(std::round(time / MAX_TIME * 65535.f));
+}
+constexpr float ntolTime(std::uint16_t netTime) {
+    return static_cast<float>(netTime) / 65535.f * MAX_TIME;
+}
+constexpr std::uint16_t ltonRadius(float radius) {
+    return static_cast<std::uint16_t>(std::round(radius / MAX_RADIUS * 65535.f));
+}
+constexpr float ntolRadius(std::uint16_t netRadius) {
+    return static_cast<float>(netRadius) / 65535.f * MAX_RADIUS;
+}
 enum class EntityTypeID : std::uint8_t {
     NONE = 0,
 #define X(name) name,
@@ -114,6 +148,7 @@ namespace ServerTypes {  //packet that server handle
         // char[16] playerId; uint8 type; uint16 size, uint16 hp, uint16 fp, 4 byte skill level, total 27 byte
         PKT_REQUEST_STOP = 7, //reliable, for stop whole server logic except networking, 0 byte
         PKT_REQUEST_RESUME = 8, //reliable, for resume, 0 byte
+        PKT_REQUEST_RESPAWN = 9,  //reliable, 0 byte
         COUNT
     };
 }
@@ -133,7 +168,7 @@ namespace ClientTypes {  //packet that client handle
         PKT_MESSAGE,
         // char[]
         PKT_PLAYER_STATE_UPDATE, //reliable, send when hp or fp change
-        //2HP 2FP 2size = 6 byte
+        //2HP 2FP 2size 2time = 8 byte, extra hp delta 2 byte * n
         PKT_PLAYER_ATTRIBUTES_UPDATE,  //reliable, when max attributes change(including hp, fp, vel, acc)
         //2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, total 8 byte
         PKT_PLAYER_DASH, //reliable, for dash or other skills that add velocity instantly
@@ -147,6 +182,7 @@ namespace ClientTypes {  //packet that client handle
         PKG_FINISH_LOGIN, //reliable, 2 byte for max HP, 2 byte for max FP, 2 byte max vec, 2 byte max acc, 4 byte for skill indices, total 12 byte
         //PKT_FOOD_BALL_ABSORBED, //reliable, 2 byte entityID, 2 byte target x n
         PKT_DIALOGUE_EVENT, //reliable, 1 byte type(start/end), 2 byte dialogIndex, 1 byte if it can be closed by enter, total 4 byte/1byte
+        PKT_SET_GLOW, //reliable, 2 byte radius, 3 byte intensity(0-255)
         COUNT
     };
 }
@@ -219,10 +255,10 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
     static constexpr float SIZE_STEP = 0.2f;  //size increase step
-    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float HP_BASE = 4.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
-    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr float ATTACK_DAMAGE_BASE = 0.4f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -238,39 +274,39 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
 };
 template<> struct ParamTable<EntityTypeID::FLY_FISH> {
-    static constexpr float MAX_VELOCITY = 8.f;
-    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MAX_VELOCITY = 20.f;
+    static constexpr float MAX_FORCE = 1200.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
-    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float SIZE_STEP = 0.15f;  //size increase step
     static constexpr float HP_BASE = 2.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
-    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float FP_DEC_RATE_BASE = 0.18f;  //fp decreasing rate per second proportional to size^3
     static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
     static constexpr float AVOID_RADIUS2 = 300.f;
-    static constexpr float COHESION_WEIGHT = 500.f;
-    static constexpr float SEPARATION_WEIGHT = 450.f;
-    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float COHESION_WEIGHT = 200.f;
+    static constexpr float SEPARATION_WEIGHT = 900.f;
+    static constexpr float ALIGNMENT_WEIGHT = 200.f;
     static constexpr float AVOID_WEIGHT = 2.f;
-    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
-    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr float BASE_NUTRITION = 1.2f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr SkillIndices SKILL_INDICES = {42, 9, 17, 13};  //skill indices in SkillSystem
     static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
     // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
     // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
 };
 template<> struct ParamTable<EntityTypeID::RED_LIGHT> {
-    static constexpr float MAX_VELOCITY = 8.f;
+    static constexpr float MAX_VELOCITY = 10.f;
     static constexpr float MAX_FORCE = 320.f;
     static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
     static constexpr float SIZE_STEP = 0.2f;  //size increase step
     static constexpr float HP_BASE = 2.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
-    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
-    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr float FP_DEC_RATE_BASE = 0.12f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.35f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -279,22 +315,47 @@ template<> struct ParamTable<EntityTypeID::RED_LIGHT> {
     static constexpr float SEPARATION_WEIGHT = 450.f;
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
-    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr float BASE_NUTRITION = 2.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr SkillIndices SKILL_INDICES = {42, 2, 13, 9};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    static constexpr float LIGHT_RADIUS = 10.f;  //light radius
+    static constexpr sf::Uint8 LIGHT_COLOR[3] = {255, 100, 100};  //light color
+};
+template<> struct ParamTable<EntityTypeID::SMALL_SHARK> {
+    static constexpr float MAX_VELOCITY = 12.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 3.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 4.f;  //hp proportional to size
+    static constexpr float FP_BASE = 6.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.2f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 1.f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 3.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr float CHASE_RADIUS = 30.f;
     static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
     static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
     // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
     // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
 };
-template<> struct ParamTable<EntityTypeID::SMALL_SHARK> {
-    static constexpr float MAX_VELOCITY = 8.f;
-    static constexpr float MAX_FORCE = 320.f;
-    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+template<> struct ParamTable<EntityTypeID::TURTLE> {
+    static constexpr float MAX_VELOCITY = 4.f;
+    static constexpr float MAX_FORCE = 480.f;
+    static constexpr float MASS_BASE = 8.f;  //mass proportional to size^2
     static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
     static constexpr float SIZE_STEP = 0.2f;  //size increase step
-    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float HP_BASE = 12.f;  //hp proportional to size
     static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
     static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
-    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr float ATTACK_DAMAGE_BASE = 0.2f;  //base damage
     static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
     static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
     static constexpr float SEPARATION_RADIUS2 = 50.f;
@@ -304,7 +365,99 @@ template<> struct ParamTable<EntityTypeID::SMALL_SHARK> {
     static constexpr float ALIGNMENT_WEIGHT = 100.f;
     static constexpr float AVOID_WEIGHT = 2.f;
     static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
-    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr SkillIndices SKILL_INDICES = {42, 17, 2, 35};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::BALL_ORANGE> {
+    static constexpr float MAX_VELOCITY = 6.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 6.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.4f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 550.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 3.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::UGLY_FISH> {
+    static constexpr float MAX_VELOCITY = 10.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.4f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 300.f;
+    static constexpr float SEPARATION_WEIGHT = 250.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 0.5f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::ROUND_GREEN> {
+    static constexpr float MAX_VELOCITY = 7.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 12.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.4f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 6.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::BLUE_LONG> {
+    static constexpr float MAX_VELOCITY = 8.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 10.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.4f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 4.f;  //nutrition in food ball when death, proportional to size^2
     static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
     // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
     // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
@@ -364,6 +517,11 @@ struct EntityCollisionEvent {
 struct PlayerRespawnEvent {
     Entity player;
 };
+struct PlayerGlowSetEvent {
+    Entity entity;
+    float radius;
+    std::uint8_t intensity;
+};
 constexpr const char* getTexturePath(EntityTypeID type) {
     using ET = EntityTypeID;
     constexpr const char* paths[] = {
@@ -377,6 +535,7 @@ constexpr const char* getTexturePath(EntityTypeID type) {
         "images/fish/ugly_fish.png",      // UGLY_FISH
         "images/fish/small_shark.png",     // SMALL_SHARK
         "images/fish/none.png",           // FOOD_BALL (actually not used)
+        "images/fish/turtle.png"          // TURTLE
     };
     static_assert(sizeof(paths) / sizeof(paths[0]) == static_cast<size_t>(ET::COUNT),
                   "Texture path array size mismatch!");
@@ -395,6 +554,7 @@ constexpr int getTextureTotalFrame(EntityTypeID type) {
         2,  // UGLY_FISH
         2,   // SMALL_SHARK
         1,  // FOOD_BALL (actually not used)
+        6
     };
     static_assert(sizeof(frames) / sizeof(frames[0]) == static_cast<size_t>(static_cast<EntityTypeID>(EntityTypeID::COUNT)),
                   "Texture frame array size mismatch!");
@@ -412,6 +572,8 @@ constexpr float getFrameInterval(EntityTypeID type) {
         case EntityTypeID::UGLY_FISH:
         case EntityTypeID::SMALL_SHARK:
             return 1.f;   //5 fps
+        case EntityTypeID::TURTLE:
+            return 0.5f;
         default:
             return 1.f;   //1 fps
     }
@@ -422,6 +584,10 @@ inline const char* getSkillIntroduction(int skillID) {
         case 2: return "Gives you a sudden speed.\nBody moves\n...before mind catches up.";
         case 24: return "Breath steadies.\nWounds close on their own.";
         case 1: return "Dark, dark, yet darker...\nand still, you shine.";
+        case 9: return "Tail thrashes...\nyou surge forward.";
+        case 17: return "Body coils...\nthen explodes forward.\nNo hesitation.";
+        case 13: return "Hunger fades...\nnot from food,\nbut from will.";
+        case 35: return "The world strikes...\nand finds nothing to hit.";
         default: return "The game doesn't know this exists.\n...Do you?";
     }
 }

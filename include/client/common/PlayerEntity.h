@@ -16,6 +16,9 @@ class PlayerEntity {
 public:
     void setType(EntityTypeID type);
     void setSize(float size);
+    void triggerHurtFlash(float strength = 1.f) {
+        hurtFlash_ = std::min(1.f, hurtFlash_ + strength);
+    }
     void setMaxVec(float maxVec) {
         maxVelocity_ = maxVec;
         resistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, DEFAULT_RESISTANCE_FORCE_POW_TIMES);
@@ -27,7 +30,14 @@ public:
         overspeedResistanceAccPerVel_ = maxAcceleration_ / std::pow(maxVelocity_, OVERSPEED_RESISTANCE_FORCE_POW_TIMES);
     }
     void render(sf::RenderWindow& window) const {
-        window.draw(sprite_);
+        if (hurtFlash_ > 0.f && hurtShader_) {
+            hurtShader_->setUniform("u_flash", hurtFlash_);
+            sf::RenderStates states;
+            states.shader = hurtShader_;
+            window.draw(sprite_, states);
+        } else {
+            window.draw(sprite_);
+        }
     }
     void update(float dt, sf::Vector2f acc);
     void setPos(float x, float y) {  //directly set pos
@@ -74,6 +84,10 @@ private:
     float dashVel_ { -1.f };  //-1.f means no dash
     float cachedSize{};
     bool isFlipped{false};
+    //hurt flash
+    float hurtFlash_ = 0.f;  //current intensity
+    float hurtFlashDecay_ = 6.f;  //decreasing rate
+    sf::Shader* hurtShader_ { &ResourceManager::getShader("shaders/hurtflash.frag") };
     float calcResistanceAcc(float vel) const;
     void adjustPosInBorder() {   //keep in border
         if (position_.x < 0.f) {
@@ -129,6 +143,7 @@ inline void PlayerEntity::setSize(float size) {
     cachedSize = size;
     float scale = size / static_cast<float>(sprite_.getTexture()->getSize().x / totalFrames_);
     sprite_.setScale(scale, scale * (isFlipped ? -1.f : 1.f));
+    GameData::playerSize[GameData::playerType] = size;
 }
 inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
     // when mouse click, move the player to that direction(velocity proportional to distance)

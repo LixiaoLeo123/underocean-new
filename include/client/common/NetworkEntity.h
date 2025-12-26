@@ -45,10 +45,10 @@ public:
             window.draw(hpBarBg_);
             window.draw(hpBarFill_);
         }
-        sf::FloatRect textBounds = nameText_.getLocalBounds();
+        sf::FloatRect textBounds = nameText_.getGlobalBounds();
         sf::Vector2f basePos = sprite_.getPosition();
         if (hasNameTag_) {
-            float yOffset = sprite_.getGlobalBounds().height / 2.f + nameTagYOffset_;
+            float yOffset = sprite_.getGlobalBounds().height / 3.f + nameTagYOffset_;
             sf::Vector2f textPos(
                 basePos.x - textBounds.width / 2.f,
                 basePos.y - yOffset - textBounds.height
@@ -265,7 +265,7 @@ inline void NetworkEntity::updatePos(float dt) {
     interpTimer_ += dt;
     constexpr float ALPHA = 0.4f;  //smoothing factor, less is smoother
     sf::Vector2f target;
-    target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
+    target = prevNetPos_ + (netPos_ - prevNetPos_) * std::clamp(interpTimer_ / SERVER_DT_, 0.f, 1.f);
     // if (interpTimer_ <= SERVER_DT_ * 1.25f) {
     //     target = prevNetPos_ + (netPos_ - prevNetPos_) * (interpTimer_ / SERVER_DT_);
     // }
@@ -309,7 +309,8 @@ inline void NetworkEntity::setNameTag(const std::string& name) {
     hasNameTag_ = true;
     nameText_.setFont(ResourceManager::getFont("fonts/font6.ttf"));
     nameText_.setString(name);
-    nameText_.setCharacterSize(10);
+    nameText_.setCharacterSize(64);
+    nameText_.setScale(0.01f, 0.01f);
     nameText_.setFillColor(sf::Color::White);
     nameText_.setOutlineThickness(0.f);
     nameBg_.setFillColor(sf::Color(50, 50, 50, 160));

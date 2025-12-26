@@ -17,12 +17,14 @@ private:
         EntityTypeID type;
         double weight;
     };
+    std::vector<WeightedEntry> weightedEntries_ {};
+    friend class TimeSystem;
+private:
     std::mt19937 gen_{ std::random_device{}() };  //for spawnRandom
     Coordinator& coord_;
     sf::Vector2f spawnAreaFrom_ {};
     sf::Vector2f spawnAreaTo_ {};   //spawn area
     std::vector<std::function<Entity(PlayerData* playerData)>> spawnFunctions_;  //spawn and get Entity value, playerData is nullptr for non-player
-    std::vector<WeightedEntry> weightedEntries_ {};
     std::discrete_distribution<size_t> dist;
     // bool spawnFunctionsEmpty{ true };  // prevent spawnRandom before initialize
     bool distDirty_{ false };  //see spawnRandom
@@ -37,7 +39,7 @@ public:
     explicit EntityFactory(Coordinator& coordinator)
         :coord_(coordinator) {
         spawnFunctions_.reserve(static_cast<size_t>(EntityTypeID::COUNT));
-    };
+    }
     void initialize(EventBus& eventBus);   //add spawn functions
     void setSpawnArea(sf::Vector2f from, sf::Vector2f to) {
         spawnAreaFrom_ = from;
@@ -54,9 +56,23 @@ public:
         size_t index = static_cast<size_t>(playerData->type);
         return spawnFunctions_[index](playerData);
     }
+    void resetWeightedEntries() {
+        weightedEntries_.clear();
+        distDirty_ = true;
+    }
     void addWeightedEntry(EntityTypeID id, double weight) {
         weightedEntries_.push_back({id, weight});
         distDirty_ = true;
+    }
+    void changeWeightedEntry(EntityTypeID id, double newWeight) {
+        for (auto& entry : weightedEntries_) {
+            if (entry.type == id) {
+                entry.weight = newWeight;
+                distDirty_ = true;
+                return;
+            }
+        }
+        assert(false && "EntityTypeID not found in weightedEntries_!");
     }
     Entity spawnRandom() {   //with weight in weightedEntries
         if (distDirty_) {   //after weightedEntries change
