@@ -23,7 +23,10 @@ X(UGLY_FISH) \
 X(SMALL_SHARK) \
 X(FOOD_BALL)
 #define PLAYER_ENTITY_TYPES \
-X(SMALL_YELLOW)
+X(SMALL_YELLOW) \
+X(FLY_FISH) \
+X(RED_LIGHT) \
+X(SMALL_SHARK)
 #define LIGHT_ENTITY_TYPES \
 X(FOOD_BALL)
 using Entity = std::uint16_t;
@@ -234,6 +237,78 @@ template<> struct ParamTable<EntityTypeID::SMALL_YELLOW> {
     // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
     // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
 };
+template<> struct ParamTable<EntityTypeID::FLY_FISH> {
+    static constexpr float MAX_VELOCITY = 8.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::RED_LIGHT> {
+    static constexpr float MAX_VELOCITY = 8.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
+template<> struct ParamTable<EntityTypeID::SMALL_SHARK> {
+    static constexpr float MAX_VELOCITY = 8.f;
+    static constexpr float MAX_FORCE = 320.f;
+    static constexpr float MASS_BASE = 1.f;  //mass proportional to size^2
+    static constexpr float INIT_SIZE = 1.5f;  //remember changing GameData init
+    static constexpr float SIZE_STEP = 0.2f;  //size increase step
+    static constexpr float HP_BASE = 2.f;  //hp proportional to size
+    static constexpr float FP_BASE = 3.f;  //fp proportional to size^2
+    static constexpr float FP_DEC_RATE_BASE = 0.08f;  //fp decreasing rate per second proportional to size^3
+    static constexpr float ATTACK_DAMAGE_BASE = 0.25f;  //base damage
+    static constexpr int PERCEPTION_DIST = 1;   //radius by chunk fish can see
+    static constexpr float NEIGHBOR_RADIUS2 = 70.f;    //boids
+    static constexpr float SEPARATION_RADIUS2 = 50.f;
+    static constexpr float AVOID_RADIUS2 = 300.f;
+    static constexpr float COHESION_WEIGHT = 500.f;
+    static constexpr float SEPARATION_WEIGHT = 450.f;
+    static constexpr float ALIGNMENT_WEIGHT = 100.f;
+    static constexpr float AVOID_WEIGHT = 2.f;
+    static constexpr float BASE_NUTRITION = 1.f;  //nutrition in food ball when death, proportional to size^2
+    static constexpr SkillIndices SKILL_INDICES = {42, 2, 24, 1};  //skill indices in SkillSystem
+    static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{3.f / 8.f, 5.f / 24.f, -1.f / 24.f, 1.f / 24.f} }; //relative to center, size1-based
+    // static constexpr float LIGHT_RADIUS = 1.6f;  //light radius
+    // static constexpr sf::Uint8 LIGHT_COLOR[3] = {25, 25, 25};  //light color
+};
 template<> struct ParamTable<EntityTypeID::FOOD_BALL> {
     static constexpr std::array<HitBox, 1> HIT_BOXES = { HitBox{2.5f, 2.5f} };
     static constexpr float LIGHT_RADIUS = 2.4f;  //light radius
@@ -339,6 +414,15 @@ constexpr float getFrameInterval(EntityTypeID type) {
             return 1.f;   //5 fps
         default:
             return 1.f;   //1 fps
+    }
+}
+inline const char* getSkillIntroduction(int skillID) {
+    switch (skillID) {
+        case 42: return "Instinct in motion.\nNo thought. Just strike.";
+        case 2: return "Gives you a sudden speed.\nBody moves\n...before mind catches up.";
+        case 24: return "Breath steadies.\nWounds close on their own.";
+        case 1: return "Dark, dark, yet darker...\nand still, you shine.";
+        default: return "The game doesn't know this exists.\n...Do you?";
     }
 }
 #endif //UNDEROCEAN_TYPES_H

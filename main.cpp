@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
     GameClient client;
     client.run();
 #endif
+    GameData::saveSettings();
     enet_deinitialize();
 }
 void detachLocalServer() {
