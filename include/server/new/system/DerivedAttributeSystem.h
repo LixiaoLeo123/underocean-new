@@ -191,6 +191,9 @@ inline void DerivedAttributeSystem::onEntityCollision(const EntityCollisionEvent
             auto& fpComp = coord_.getComponent<FP>(e2);
             auto& foodComp = coord_.getComponent<FoodBall>(e1);
             fpComp.fp += foodComp.nutrition;
+            auto& hp =  coord_.getComponent<HP>(e2).hp;
+            hp += foodComp.nutrition / 3.f;
+            if (hp > coord_.getComponent<HP>(e2).maxHp) hp = coord_.getComponent<HP>(e2).maxHp;
             eventBus_.publish<EntityDeathEvent>({e1});
         }
     };

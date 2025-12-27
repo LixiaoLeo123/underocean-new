@@ -20,7 +20,7 @@ class PacketWriter;
 using namespace ServerTypes;
 class GameServer {
 private:
-    static constexpr int levelNum = 2;   //max level num is 6
+    static constexpr int levelNum = 7;   //max level num is 6
     std::array<std::unique_ptr<ILevel>, levelNum> levels_;  //level0 for lobby!
     static bool isLevelLegal(int level){ return (level >= 0 && level < levelNum); }
     ServerNetworkDriver networkDriver_;
@@ -157,6 +157,7 @@ inline void GameServer::handleLevelChangePacket() {
         levels_[to]->onPlayerJoin(playerList_[it->second.peer]);
         buffer_[peer] = std::queue<std::unique_ptr<Packet>>{}; //clear buffer
         std::cout << "Player " << it->second.playerId << " changed to level " << to << std::endl;
+        isStopped = false;
     }
 }
 inline void GameServer::handleMessagePacket() {  //only distribute, broadcast

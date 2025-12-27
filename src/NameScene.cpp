@@ -81,7 +81,6 @@ NameScene::NameScene(const std::shared_ptr<SmoothTextLabel>& title)
         add(cachedId_);
     }
     AudioManager::getInstance().playMusic("audio/m_name.wav");
-    AudioManager::getInstance().setSoundVolume(65.f);
 }
 
 void NameScene::render(sf::RenderWindow &window) {

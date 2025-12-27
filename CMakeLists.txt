@@ -49,6 +49,11 @@ add_executable(Underocean
         src/ClientFoodBall.cpp
         src/CharacterSelectMenu.cpp
         src/HelpScene.cpp
+        src/Level2.cpp
+        src/Level3.cpp
+        src/Level4.cpp
+        src/Level5.cpp
+        src/Level6.cpp
 )
 
 

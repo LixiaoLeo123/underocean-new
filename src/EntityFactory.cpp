@@ -278,7 +278,7 @@ void EntityFactory::initialize(EventBus& eventBus) {
             }
         }
         eventBus.publish<AttributedEntityInitEvent>({newEntity, static_cast<bool>(playerData),
-            static_cast<bool>(playerData), static_cast<bool>(playerData)});
+            true, true});
         coord_.notifyEntityChanged(newEntity);
         return newEntity;
         });

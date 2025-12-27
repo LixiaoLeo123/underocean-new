@@ -51,13 +51,14 @@ HelpScene::HelpScene(const std::shared_ptr<SmoothTextLabel>& title)
     contentBox_.setOutlineThickness(1.f);
     float startY = contentBox_.getGlobalBounds().top + 20.f;
     float rowHeight = 22.0f;
-    float gap = 42.0f;
+    float gap = 32.0f;
     struct Data { std::string k; std::string d; };
     std::vector<Data> list = {
         {"MOUSE", "Move"},
         {"SPACE 1-3", "Cast Skills"},
         {"Q", "Back Pause"},
-        {"T", "Chat"}
+        {"T", "Chat"},
+        {"ENTER", "Next"}
     };
 
     for (const auto& item : list) {

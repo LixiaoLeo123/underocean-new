@@ -1,6 +1,3 @@
-//
-// Created by 15201 on 11/27/2025.
-//
 #include "server/new/levels/Level1.h"
 
 #include "server/new/resources/TimeResource.h"
@@ -44,15 +41,15 @@ void Level1::initialize() {
     coordinator_.ctx<GridResource>().init(MAP_SIZE.x, MAP_SIZE.y, CHUNK_COLS, CHUNK_ROWS);  //40x36 chunks
     coordinator_.emplaceContext<PlotContext1>();
     entityFactory_.setSpawnArea({0.f, 0.f}, {MAP_SIZE.x, MAP_SIZE.y});
-    entityFactory_.addWeightedEntry(EntityTypeID::SMALL_YELLOW, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::FLY_FISH, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::RED_LIGHT, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::SMALL_SHARK, 100);
+    entityFactory_.addWeightedEntry(EntityTypeID::FLY_FISH, 0.3);
+    entityFactory_.addWeightedEntry(EntityTypeID::RED_LIGHT, 0.3);
     entityFactory_.addWeightedEntry(EntityTypeID::TURTLE, 0.1);
-    entityFactory_.addWeightedEntry(EntityTypeID::UGLY_FISH, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::ROUND_GREEN, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::BALL_ORANGE, 1);
-    entityFactory_.addWeightedEntry(EntityTypeID::BLUE_LONG, 1);
+    entityFactory_.addWeightedEntry(EntityTypeID::UGLY_FISH, 2);
+    entityFactory_.addWeightedEntry(EntityTypeID::SMALL_YELLOW, 0.4);
+    entityFactory_.addWeightedEntry(EntityTypeID::BALL_ORANGE, 0.3);
+    entityFactory_.addWeightedEntry(EntityTypeID::BLUE_LONG, 0.2);
+    entityFactory_.addWeightedEntry(EntityTypeID::ROUND_GREEN, 0.1);
+    entityFactory_.addWeightedEntry(EntityTypeID::SMALL_SHARK, 0.02);
     networkSignature_.set(Coordinator::getComponentTypeID<NetworkPeer>());
     coordinator_.registerSystem(networkSignature_);
 }

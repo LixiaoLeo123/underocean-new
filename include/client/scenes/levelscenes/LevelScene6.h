@@ -1,15 +1,15 @@
 //
-// Created by 15201 on 12/4/2025.
+// Created by 15201 on 12/27/2025.
 //
 
-#ifndef UNDEROCEAN_LEVELSCENE1_H
-#define UNDEROCEAN_LEVELSCENE1_H
+#ifndef UNDEROCEAN_LEVELSCENE6_H
+#define UNDEROCEAN_LEVELSCENE6_H
 #include "LevelSceneBase.h"
 #include "server/new/component/Components.h"
 
-class LevelScene1 : public LevelSceneBase {
+class LevelScene6 : public LevelSceneBase {
 public:
-    explicit LevelScene1(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
+    explicit LevelScene6(const std::shared_ptr<ClientNetworkDriver>& driver, ClientCommonPlayerAttributes& playerAttributes, const std::shared_ptr<ChatBox>& chatBox)
         :LevelSceneBase(driver, playerAttributes, chatBox) {
         player.setBorder(MAP_SIZE.x, MAP_SIZE.y);
         // if (GameData::firstPlay) {
@@ -20,14 +20,14 @@ public:
         // else {
         //     background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg4/bg4.png"));
         // }
-        background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg4/bg4.png"));
-        writer_.writeInt8(static_cast<std::uint8_t>(1));  //to level 1
+        background_.setTexture(ResourceManager::getTexture("images/backgrounds/bg6.png"));
+        writer_.writeInt8(static_cast<std::uint8_t>(6));  //to level 1
         driver_->send(writer_.takePacket(), 0, ServerTypes::PacketType::PKT_LEVEL_CHANGE, 1);
         writer_.clearBuffer();
     }
 
 protected:
-    int getLevelNum() override { return 1; };
+    int getLevelNum() override { return 6; };
 
 public:
     void render(sf::RenderWindow& window) override {
@@ -57,13 +57,13 @@ public:
     }
     UVector getMapSize() override { return MAP_SIZE; };
 private:
-    static constexpr UVector MAP_SIZE{1024.f, 192.f };  //decided by bg
-    static constexpr int CHUNK_ROWS = 12;   //about 16 x 16 px
-    static constexpr int CHUNK_COLS = 64;   //no chunk update needed on client, but for net pos convert
+    static constexpr UVector MAP_SIZE{1728.f, 324.f};  //decided by bg
+    static constexpr int CHUNK_ROWS = 108;   //about 16 x 16 px  15, 26
+    static constexpr int CHUNK_COLS = 21;
     enum class State {
         ANIMATION,
         GAMING
     };
     State state_ { State::GAMING };
 };
-#endif //UNDEROCEAN_LEVELSCENE1_H
+#endif //UNDEROCEAN_LEVELSCENE6_H

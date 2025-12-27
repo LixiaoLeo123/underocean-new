@@ -5,6 +5,8 @@
 #include "../include/client/scenes/startmenu/StartMenu.h"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <utility>
+
+#include "client/common/AudioManager.h"
 #include "client/common/ResourceManager.h"
 #include "client/scenes/CharacterSelectMenu/CharacterSelectMenu.h"
 #include "client/scenes/helpscene/HelpScene.h"
@@ -82,6 +84,7 @@ StartMenu::StartMenu(const std::shared_ptr<SmoothTextLabel>& title, bool titleSm
     }
     title_->setOutlineColor(sf::Color::Black, 1);
     title_->setVisible(true);
+    AudioManager::getInstance().playMusic("audio/m_beginning.mp3");
 }
 
 void StartMenu::handleEvent(const sf::Event& event) {

@@ -115,6 +115,7 @@ protected:
     void handleHPDelta();
     void handleDialoguePacket();
     void handleGlowSetPacket();
+    virtual int getLevelNum() = 0;
     enum class State {
         GAMING,
         DEATH
@@ -129,6 +130,8 @@ private:
     PlayerStatus playerStatus_ {};  //HP and FP indicator
     float playerGlowRadius_{0.f};
     sf::Color playerGlowColor_;
+    float lastTime_ = 0.f;
+    bool bgmInit_ { false };
 protected:
     std::unordered_map<Entity, std::unique_ptr<NetworkEntity>> entities_;
     PlayerEntity player;
@@ -180,9 +183,9 @@ inline void LevelSceneBase::handleEvent(const sf::Event &event) {
             }
         }
     }
-    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
-        startDialogue(1, true);
-    }
+    // if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+    //     startDialogue(1, true);
+    // }
     handlePauseInput(event, InputManager::getInstance().mousePosWorld);
     if (dialogueSystem_.active) {
         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {

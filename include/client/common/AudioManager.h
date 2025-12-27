@@ -28,5 +28,6 @@ private:
     std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> soundBuffers_;
     std::vector<std::unique_ptr<sf::Sound>> activeSounds_;
     float masterSoundVolume_ = 100.0f;
+    std::string currentMusicPath_;
 };
 #endif //UNDEROCEAN_AUDIOMANAGER_H

@@ -51,6 +51,13 @@ LevelSceneBase::LevelSceneBase(const std::shared_ptr<ClientNetworkDriver>& drive
             playerGlowColor_ = sf::Color(lightColorRGB[0], lightColorRGB[1], lightColorRGB[2]);
         }
     }
+    if (GameData::firstPlay) {
+        GameData::firstPlay = false;
+        startDialogue(1, true);
+    }
+    else {
+        startDialogue(2, true);
+    }
 }
 void LevelSceneBase::handlePlayerStateUpdate() {
     while (auto packet = driver_->popPacket(PacketType::PKT_PLAYER_STATE_UPDATE)) {
@@ -66,10 +73,49 @@ void LevelSceneBase::handlePlayerStateUpdate() {
         float size = ntolSize16(netSize);
         float time = ntolTime(netTime);
         setTime(time);
+        if (bgmInit_) {
+            if (time < lastTime_) {
+                if (GameData::currentLevel <= getLevelNum() && lastTime_ > MAX_TIME * 0.9f) {
+                    startDialogue(3, true);
+                    GameData::currentLevel = getLevelNum() + 1;
+                }
+                if (lastTime_ > MAX_TIME * 0.9f) {
+                    bool getBonus = Random::randInt(0, 1);
+                    if (getBonus) {
+                        int index = Random::randInt(0, 3);
+                        ++GameData::skillLevel[playerAttributes_.skillIndices[index]];
+                        if (GameData::skillLevel[playerAttributes_.skillIndices[index]] > 5)
+                            GameData::skillLevel[playerAttributes_.skillIndices[index]] = 5;
+                        chatBox_->addMessage("&aYour &b&oskill " + std::to_string(index) + "&a get upgraded!");
+                    }
+                    else {
+                        chatBox_->addMessage("&aYou got nothing...");
+                    }
+                }
+                AudioManager::getInstance().stopMusic();
+                AudioManager::getInstance().playMusic("audio/m_day.mp3");
+            }
+            else if (lastTime_ <= MAX_TIME / 2.f && time > MAX_TIME / 2.f) {
+                AudioManager::getInstance().stopMusic();
+                AudioManager::getInstance().playMusic("audio/m_night.mp3");
+            }
+        }
+        else {
+            bgmInit_ = true;
+            if (time < MAX_TIME / 2.f) {
+                AudioManager::getInstance().stopMusic();
+                AudioManager::getInstance().playMusic("audio/m_day.mp3");
+            }
+            else {
+                AudioManager::getInstance().stopMusic();
+                AudioManager::getInstance().playMusic("audio/m_night.mp3");
+            }
+        }
+        lastTime_ = time;
         playerStatus_.setHP(hp);
         playerStatus_.setFP(fp);
         while (reader.canRead(2)) {
-            float delta = ntolHPDelta(reader.nextUInt8());
+            float delta = ntolHPDelta(reader.nextUInt16());
             spawnDamagePopup(delta, player.getPosition());
             if (delta < 0) {
                 player.triggerHurtFlash(1 - (1 / (std::abs(delta) * 32.f + 1)));
@@ -455,6 +501,8 @@ void LevelSceneBase::handlePlayerRespawn() {
                 );
         pauseMenu_.active = false;
         dialogueSystem_.active = false;
+        AudioManager::getInstance().stopMusic();
+        bgmInit_ = false;
         AudioManager::getInstance().playSound("audio/s_wasted.wav");
     }
 }
@@ -623,7 +671,22 @@ void LevelSceneBase::initDialogueSystem() {
     dialogueSystem_.localDatabase[1] = {
         {"Hello, %PLAYER_NAME%. Welcome to the deep sea.", "audio/s_tip.wav"},
         {"The pressure here is immense...", "audio/s_tip.wav"},
-        {"But you seem to be adapting well.", "audio/s_tip.wav"}
+        {"But you seem to be adapting well.", "audio/s_tip.wav"},
+        {"Survive the first night...", "audio/s_tip.wav"},
+        {"The deep does not forgive the unready.", "audio/s_tip.wav"},
+        {"But if you last until dawn...", "audio/s_tip.wav"},
+        {"the abyss will open its gates.", "audio/s_tip.wav"}
+    };
+    dialogueSystem_.localDatabase[2] = {
+        {"Survive the first night...", "audio/s_tip.wav"},
+        {"The deep does not forgive the unready.", "audio/s_tip.wav"},
+        {"But if you last until dawn...", "audio/s_tip.wav"},
+        {"the abyss will open its gates.", "audio/s_tip.wav"}
+    };
+    dialogueSystem_.localDatabase[3] = {
+        {"Dawn breaks in the deep.", "audio/s_tip.wav"},
+        {"You have survived the first night.", "audio/s_tip.wav"},
+        {"The path downward opens...", "audio/s_tip.wav"}
     };
 }
 std::string LevelSceneBase::parseDialogueText(const std::string& raw) {

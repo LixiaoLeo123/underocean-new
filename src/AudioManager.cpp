@@ -12,16 +12,28 @@ AudioManager::~AudioManager() {
     soundBuffers_.clear();
 }
 void AudioManager::playMusic(const std::string& path, bool loop, float volume) {
-    if (!music_.openFromFile("assets/" + path)) {
-        std::cerr << "Failed to load music: " << path << std::endl;
+    std::string fullPath = "assets/" + path;
+    if (currentMusicPath_ == fullPath) {
+        if (music_.getStatus() != sf::Music::Playing) {
+            music_.play();
+        }
+        music_.setLoop(loop);
+        music_.setVolume(std::clamp(volume, 0.0f, 100.0f));
         return;
     }
+    if (!music_.openFromFile(fullPath)) {
+        std::cerr << "Failed to load music: " << path << std::endl;
+        currentMusicPath_.clear();
+        return;
+    }
+    currentMusicPath_ = fullPath;
     music_.setLoop(loop);
-    music_.setVolume(volume);
+    music_.setVolume(std::clamp(volume, 0.0f, 100.0f));
     music_.play();
 }
 void AudioManager::stopMusic() {
     music_.stop();
+    currentMusicPath_.clear();
 }
 void AudioManager::setMusicVolume(float volume) {
     music_.setVolume(std::clamp(volume, 0.0f, 100.0f));

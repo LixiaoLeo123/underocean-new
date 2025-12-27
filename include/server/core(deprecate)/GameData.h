@@ -18,9 +18,9 @@ X(int, SERVER_TPS, 20) \
 X(int, ENTITY_SYNC_RADIUS_X, 3) \
 X(int, ENTITY_SYNC_RADIUS_Y, 2) \
 X(float, CAMERA_ALPHA, 0.05f) \
-X_ARRAY(char, playerId, 16, "Ass") \
+X_ARRAY(char, playerId, 16, "@") \
 X_ARRAY(std::uint8_t, playerUUID, 16, {0}) \
-X(int, currentLevel, 6) \
+X(int, currentLevel, 1) \
 X(bool, firstPlay, true) \
 X(int, playerType, static_cast<int>(EntityTypeID::SMALL_YELLOW)) \
 X_ARRAY(bool, characterUnlocked, static_cast<unsigned long long>(EntityTypeID::COUNT), INIT_PLAYER_CHARACTER_UNLOCKED) \

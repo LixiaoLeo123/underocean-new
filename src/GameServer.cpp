@@ -7,6 +7,11 @@
 #include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
 #include "server/new/levels/Level1.h"
+#include "server/new/levels/Level2.h"
+#include "server/new/levels/Level3.h"
+#include "server/new/levels/Level4.h"
+#include "server/new/levels/Level5.h"
+#include "server/new/levels/Level6.h"
 #include "server/new/system/DerivedAttributeSystem.h"
 #include "server/new/system/SkillSystem.h"
 
@@ -33,6 +38,11 @@ GameServer::GameServer(bool isMultiplePlayer, int port)
     }
     levels_[0] = std::make_unique<Level0>();
     levels_[1] = std::make_unique<Level1>(*this);
+    levels_[2] = std::make_unique<Level2>(*this);
+    levels_[3] = std::make_unique<Level3>(*this);
+    levels_[4] = std::make_unique<Level4>(*this);
+    levels_[5] = std::make_unique<Level5>(*this);
+    levels_[6] = std::make_unique<Level6>(*this);
     std::cout << "Server started on port: " << finalPort << std::endl;
 }
 void GameServer::handleLoginPacket() {   //char[16] name; uint8 type;

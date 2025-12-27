@@ -172,6 +172,10 @@ inline void PlayerEntity::update(float dt, sf::Vector2f rawAcc) {
             velocity_ = {0.f, 0.f};
         }
     }
+    if (hurtFlash_ > 0.f) {
+        hurtFlash_ -= hurtFlashDecay_ * dt;
+        if (hurtFlash_ < 0.f) hurtFlash_ = 0.f;
+    }
     // velocity_ = {0.7f * maxVelocity_, maxVelocity_ * 0.7f};
     position_ += velocity_ * dt * 1.6f;  //1.5 is speedup factor
     adjustPosInBorder();

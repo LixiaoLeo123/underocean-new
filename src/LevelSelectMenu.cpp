@@ -1,8 +1,14 @@
 #include "client/scenes/LevelSelectMenu/LevelSelectMenu.h"
 
+#include "client/common/AudioManager.h"
 #include "client/common/ChatBox.h"
 #include "client/common/ResourceManager.h"
 #include "client/scenes/levelscenes/LevelScene1.h"
+#include "client/scenes/levelscenes/LevelScene2.h"
+#include "client/scenes/levelscenes/LevelScene3.h"
+#include "client/scenes/levelscenes/LevelScene4.h"
+#include "client/scenes/levelscenes/LevelScene5.h"
+#include "client/scenes/levelscenes/LevelScene6.h"
 #include "client/scenes/startmenu/StartMenu.h"
 #include "server/core(deprecate)/GameData.h"
 #include "server/new/levels/Level0.h"
@@ -97,6 +103,7 @@ void LevelSelectMenu::reloadUI() {
             levelButtons_[i]->setOnClick(nullptr);   //do nothing
         }
     }
+    AudioManager::getInstance().playMusic("audio/m_beginning.mp3");
 }
 void LevelSelectMenu::handleFinishLoginPacket() {
     if (auto packet = networkDriver_->popPacket(ClientTypes::PacketType::PKG_FINISH_LOGIN)) {
@@ -204,13 +211,69 @@ void LevelSelectMenu::handleLevelButtonClick(int levelNum) {  //levelNum suppose
     }
     else {
         shouldReloadUI = true;
-        SceneSwitchRequest request = {
-            SceneSwitchRequest::Push,
-            std::make_unique<LevelScene1>(networkDriver_, playerAttributes_, chatBox_),
-            0,
-            0
-        };
-        onRequestSwitch_(request);
+        switch (levelNum) {
+            case 1: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene1>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+            case 2: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene2>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+            case 3: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene3>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+            case 4: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene4>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+            case 5: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene5>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+            case 6: {
+                SceneSwitchRequest request = {
+                    SceneSwitchRequest::Push,
+                    std::make_unique<LevelScene6>(networkDriver_, playerAttributes_, chatBox_),
+                    0,
+                    0
+                    };
+                onRequestSwitch_(request);
+                break;
+            }
+        }
+        AudioManager::getInstance().stopMusic();
     }
 }
 

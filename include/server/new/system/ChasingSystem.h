@@ -14,7 +14,7 @@ private:
     Signature signature_ {};
     Coordinator& coord_;
     EventBus& eventBus_;
-    constexpr static float CHASE_FORCE_MAGNITUDE = 50.0f;
+    constexpr static float CHASE_FORCE_MAGNITUDE = 3000.f;
     constexpr static float CHECK_INTERVAL = 1.f;
     constexpr static float BASE_START_CHASE_PROB = 0.3f;
     constexpr static float BASE_GIVE_UP_PROB = 0.1f;
@@ -36,11 +36,12 @@ public:
             checkElapse += dt;
             return;
         }
+        checkElapse = 0.f;
         auto& timeRes = coord_.ctx<TimeResource>();
         float angle = (timeRes.currentTime / MAX_TIME) * 2.0f * 3.14159265f;
-        float brightness = -(std::sin(angle) + 1.0f) / 2.0f;
-        float startChaseChance = (0.1f + brightness * 0.8f) * dt * BASE_START_CHASE_PROB;
-        float stopChaseChance  = (0.9f - brightness * 0.8f) * dt * BASE_GIVE_UP_PROB;
+        float brightness = 1.f - (std::sin(angle) + 1.0f) / 2.0f;
+        float startChaseChance = (0.1f + brightness * 0.8f) * BASE_START_CHASE_PROB;
+        float stopChaseChance  = (0.9f - brightness * 0.8f) * BASE_GIVE_UP_PROB;
         auto &grid = coord_.ctx<GridResource>();
         for (auto &cell: grid.cells_) {
             if (!cell.isAOI) continue;
@@ -50,6 +51,10 @@ public:
                 auto& transform = coord_.getComponent<Transform>(entity);
                 auto& force = coord_.getComponent<Force>(entity);
                 if (chase.isChasing) {
+                    if (!coord_.hasComponent<Transform>(chase.entity)) {
+                        chase.isChasing = false;
+                        continue;
+                    }
                     auto& targetTrans = coord_.getComponent<Transform>(chase.entity);
                     float dx = targetTrans.x - transform.x;
                     float dy = targetTrans.y - transform.y;
